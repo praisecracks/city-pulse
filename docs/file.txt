@@ -1,5 +1,0 @@
-TEMPORARY FILE
-
-This file is only here so GitHub can track this otherwise-empty folder.
-
-It can be deleted once actual project files are added to this directory.
