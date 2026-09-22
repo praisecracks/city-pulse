@@ -38,7 +38,7 @@ const NavBar = () => {
         {/* Contact Button */}
         <a
           href="#contact"
-          className="rounded-full bg-[#08a890] px-12 py-5 text-[30px] font-semibold text-white transition-colors hover:bg-[#078f7b]"
+          className="rounded-full bg-[#08a890] px-5 py-1 text-[16px] font-semibold text-white transition-colors hover:bg-[#078f7b]"
         >
           Contact Us
         </a>
