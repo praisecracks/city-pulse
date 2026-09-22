@@ -14,10 +14,10 @@ const NavBar = () => {
         </a>
 
         {/* Navigation */}
-        <div className="flex items-center gap-14 text-[32px] text-black">
+        <div className="flex items-center gap-14 text-[16px] text-black">
           <a
             href="#home"
-            className="font-light transition-opacity hover:opacity-70"
+            className="font-semibold transition-opacity hover:opacity-70"
           >
             Home
           </a>
