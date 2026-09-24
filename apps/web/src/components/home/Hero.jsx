@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom";
-import heroImage from "../../assets/hero-shopper.png";
+import heroImage from "../../assets/Subtract.png";
 
-// W1 — Home, hero region (PRD Section 6).
-// Acceptance criteria: value prop + download CTA visible without scrolling on mobile.
 const CATEGORIES = [
   { label: "POS / Cash", icon: "💵" },
   { label: "Food Vendors", icon: "🍲" },
@@ -12,8 +10,9 @@ const CATEGORIES = [
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#E4F3F1] to-[#FAF6EE] px-4 pb-16 pt-12 sm:px-6 sm:pt-16 lg:pt-20">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#E4F3F1] to-[#FAF6EE] px-4 pb-16 pt-2 sm:px-6 sm:pt-6 lg:pt-2">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 lg:gap-12">
+        {/* LEFT — Content */}
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-[#129E9E]/30 bg-[#FAF6EE] px-4 py-1.5 text-xs font-semibold text-[#129E9E]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#129E9E]" />
@@ -33,21 +32,23 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link
-              to="/download"
+            <a
+              href="#waitlist-section"
               className="rounded-full bg-[#129E9E] px-7 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-lg shadow-[#129E9E]/25 transition-colors hover:bg-[#0E7F7F]"
             >
-              Download the app
-            </Link>
+              {/* Download the app */}
+              Join Waitlist
+            </a>
+
             <Link
-              to="/about/product"
+              to="/"
               className="text-sm font-semibold text-[#14232B] underline decoration-[#129E9E]/40 decoration-2 underline-offset-4 hover:decoration-[#129E9E]"
             >
               See how it works
             </Link>
           </div>
 
-          <dl className="mt-10 flex flex-wrap gap-x-8 gap-y-4">
+          <dl className="mt-10 flex flex-wrap gap-x-3 gap-y-4">
             {CATEGORIES.map(({ label, icon }) => (
               <div
                 key={label}
@@ -60,8 +61,8 @@ export default function Hero() {
           </dl>
         </div>
 
-        <div className="relative mx-auto w-full max-w-sm lg:max-w-none">
-          <div className="absolute -inset-4 -z-10 rotate-3 rounded-[2rem] bg-[#129E9E]/15" />
+        {/* RIGHT — Image */}
+        <div className="relative mx-auto w-full max-w-sm md:max-w-none">
           <img
             src={heroImage}
             alt="A City Pulse user carrying shopping bags after finding a nearby vendor with what they needed"
