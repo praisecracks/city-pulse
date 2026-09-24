@@ -5,7 +5,7 @@ const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="relative z-50 mx-auto mt-5 mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:mt-7 sm:w-[90%] sm:px-6 lg:mt-10">
+    <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
       <div className="mx-auto flex min-h-10 max-w-[2048px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
         {/* Logo */}
         <a href="/" className="flex shrink-0 items-center">
