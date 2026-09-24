@@ -25,22 +25,22 @@ const NavBar = () => {
             Home
           </a>
 
-          <a href="#about" className="transition-opacity hover:opacity-70">
+          <a href="/about" className="transition-opacity hover:opacity-70">
             About
           </a>
 
-          <a href="#product" className="transition-opacity hover:opacity-70">
+          <a href="/product" className="transition-opacity hover:opacity-70">
             Product
           </a>
 
-          <a href="#team" className="transition-opacity hover:opacity-70">
+          <a href="/team" className="transition-opacity hover:opacity-70">
             Team
           </a>
         </div>
 
         {/* Desktop Contact Button */}
         <a
-          href="#contact"
+          href="/contact"
           className="hidden rounded-full bg-[#08a890] px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-[#078f7b] md:block lg:px-5 lg:text-[16px]"
         >
           Contact Us
@@ -125,7 +125,7 @@ const NavBar = () => {
             </a>
 
             <a
-              href="#contact"
+              href="/contact"
               onClick={() => setIsOpen(false)}
               className="mt-1 w-full rounded-full bg-[#08a890] px-5 py-2.5 text-center font-semibold text-white transition-colors hover:bg-[#078f7b]"
             >
