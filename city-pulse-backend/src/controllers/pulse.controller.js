@@ -28,7 +28,51 @@ exports.getPulses = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, count: pulses.length, data: pulses });
 });
 
-const ALLOWED_FIELDS = ["title", "description", "location", "category", "contactPhone", "email", "whatsapp", "address", "details", "images"];
+const CREATE_FIELDS = [
+  "title",
+  "description",
+  "location",
+  "category",
+  "contactPhone",
+  "email",
+  "whatsapp",
+  "address",
+  "details",
+  "images",
+];
+
+/**
+ * Fields a provider may set once, at publish, and never change afterwards.
+ *
+ * These are the listing's identity and the place that identity belongs to:
+ *
+ *   - `title` — the business name. It is the provider's reputation label and the
+ *     thing customers report against by name, so changing it lets a badly
+ *     reported provider shed the reputation under a new name.
+ *   - `location` / `address` / coordinates — where the service actually is.
+ *     Trust is earned from the neighbours who actually used the provider, so a
+ *     moved listing carrying its old score would apply a Surulere reputation to
+ *     a Yaba business and make the score meaningless. It also blocks the
+ *     obvious abuse of registering once per neighbourhood to farm fresh trust.
+ *
+ * Everything else stays editable, including the contact numbers: a provider
+ * changing their phone is normal, and the one-listing-per-account rule plus the
+ * trust floor bound the damage a determined provider could do.
+ *
+ * Enforced here rather than only in the app, because a client-side lock is only
+ * a suggestion — `PUT /pulses/:id` is a public authenticated route, and a
+ * request built by hand would otherwise change any of these.
+ */
+const IMMUTABLE_AFTER_PUBLISH = ["title", "location", "address", "category"];
+
+const UPDATE_FIELDS = CREATE_FIELDS.filter((field) => !IMMUTABLE_AFTER_PUBLISH.includes(field));
+
+const LOCKED_FIELD_LABELS = {
+  title: "business name",
+  location: "area / neighborhood",
+  address: "street address",
+  category: "category",
+};
 
 const ALLOWED_CATEGORIES = ["pos", "food", "gas", "house"];
 
@@ -185,7 +229,7 @@ exports.getPulseById = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/pulses
 exports.createPulse = asyncHandler(async (req, res) => {
   const body = {};
-  for (const field of ALLOWED_FIELDS) {
+  for (const field of CREATE_FIELDS) {
     if (req.body[field]) body[field] = req.body[field];
   }
 
@@ -272,13 +316,38 @@ exports.updatePulse = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: "You can only edit your own listings" });
   }
 
+  // Locked fields are rejected rather than silently ignored. Silently dropping
+  // them would let the app keep sending them on every save, so the write would
+  // appear to succeed while the provider watched their edit do nothing. Naming
+  // the field turns a confusing no-op into a legible error.
+  const attempted = IMMUTABLE_AFTER_PUBLISH.filter((field) => req.body[field] !== undefined);
+  if (attempted.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Your ${attempted.map((f) => LOCKED_FIELD_LABELS[f]).join(", ")} cannot be changed after publishing.`,
+      code: "LISTING_FIELDS_IMMUTABLE",
+      fields: attempted,
+    });
+  }
+
+  // Coordinates are the listing's location just as much as the area and address
+  // are, so they are locked on the same terms.
+  if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Your listing location cannot be changed after publishing.",
+      code: "LISTING_FIELDS_IMMUTABLE",
+      fields: ["latitude", "longitude"],
+    });
+  }
+
   const body = {};
-  for (const field of ALLOWED_FIELDS) {
+  for (const field of UPDATE_FIELDS) {
     if (req.body[field] !== undefined) body[field] = req.body[field];
   }
 
-  if (body.category || body.details) {
-    const detailsError = validateDetails(body.category || pulse.category, body.details || pulse.details);
+  if (body.details) {
+    const detailsError = validateDetails(pulse.category, body.details);
     if (detailsError) {
       return res.status(400).json({ success: false, message: detailsError });
     }
@@ -290,19 +359,6 @@ exports.updatePulse = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: error });
     }
     body.images = images;
-  }
-
-  if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
-    const coordError = validateCoordinates(req.body.latitude, req.body.longitude);
-    if (coordError) {
-      return res.status(400).json({ success: false, message: coordError });
-    }
-    body.coordinates = {
-      latitude: Number(req.body.latitude),
-      longitude: Number(req.body.longitude),
-      accuracy: req.body.accuracy ? Number(req.body.accuracy) : undefined,
-      source: req.body.source || "manual",
-    };
   }
 
   body.lastUpdated = new Date();
