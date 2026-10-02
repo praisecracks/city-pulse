@@ -12,22 +12,26 @@ const auth = async (req, res, next) => {
 
     const token = header.split(" ")[1];
 
-    // DEV BYPASS: Accept dev tokens in development mode
+    // DEV BYPASS: Accept dev tokens in development mode.
+    //
+    // A dev token carries no identity of its own, so the account has to come
+    // from the request. It must be explicit: falling back to "whichever account
+    // was created most recently" silently attributed writes to another person —
+    // a second provider publishing a listing had it recorded against the first
+    // provider's account. Failing loudly is the only safe behaviour for a
+    // credential that cannot identify its bearer.
     if (token.startsWith("dev-token-") && process.env.NODE_ENV === "development") {
-      // Read from the body or the query so GET requests can identify the user
-      // too. Without an explicit phone, GETs would silently resolve to
-      // whichever account was created most recently.
       const phone = req.body?.phone || req.query?.phone;
-      let user = null;
 
-      if (phone) {
-        const normalizedPhone = phone.startsWith("0") ? phone : "0" + phone.replace(/^234/, "");
-        user = await User.findOne({ phone: normalizedPhone, otpVerified: true });
+      if (!phone) {
+        return res.status(401).json({
+          success: false,
+          message: "Dev tokens must identify the account with a phone number.",
+        });
       }
 
-      if (!user && !phone) {
-        user = await User.findOne({ otpVerified: true }).sort({ createdAt: -1 }).limit(1);
-      }
+      const normalizedPhone = phone.startsWith("0") ? phone : "0" + phone.replace(/^234/, "");
+      const user = await User.findOne({ phone: normalizedPhone, otpVerified: true });
 
       if (!user) {
         return res.status(401).json({ success: false, message: "No verified dev user found" });
