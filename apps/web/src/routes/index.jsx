@@ -6,6 +6,7 @@ import About from "../Pages/About";
 // import Builders from "../Pages/Builders";
 import Contact from "../Pages/Contact";
 // import Download from "../Pages/Download";
+import WaitlistSection from "../Pages/WaitlistSection";
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       // { path: "/about/company", element: <AboutCompany /> },
       // { path: "/team", element: <Builders /> },
       { path: "/contact", element: <Contact /> },
+      { path: "/waitlist", element: <WaitlistSection /> },
       // { path: "/download", element: <Download /> },
     ],
   },

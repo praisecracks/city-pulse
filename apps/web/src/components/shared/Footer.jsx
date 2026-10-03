@@ -1,5 +1,6 @@
 import Logo from "../../assets/Logo.png";
 import Icon from "./Icon";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -55,13 +56,13 @@ export default function Footer() {
                 placeholder="Enter your phone or email"
                 type="email"
               />
-              <a
-                href="#waitlist-section"
+              <Link
+                to="/waitlist"
                 className="flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[#129E9E] px-5 py-2.5 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F]"
               >
                 <span>Notify</span>
                 <Icon name="arrow_forward" size={16} />
-              </a>
+              </Link>
             </div>
           </div>
         </div>

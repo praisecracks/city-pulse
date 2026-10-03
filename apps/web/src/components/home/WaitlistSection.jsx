@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+// import { useRef, useState } from "react";
 import Icon from "../shared/Icon";
 
 const neighborhoods = [
@@ -10,70 +10,20 @@ const neighborhoods = [
   ["other", "📍 Omida"],
 ];
 
-const preferenceOptions = [
-  "POS Cash",
-  "Gas Refills",
-  "Late Food",
-  "Houses/Flats",
-];
-
 const inputClass =
   "w-full rounded-xl border border-[#14232B]/15 bg-white px-4 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:border-[#129E9E] focus:outline-none focus:ring-2 focus:ring-[#129E9E]/20";
 
 export default function WaitlistSection() {
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
   const [neighborhood, setNeighborhood] = useState("panseke");
-  const [preferences, setPreferences] = useState(["POS Cash", "Gas Refills"]);
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const selectRef = useRef(null);
 
   const chooseNeighborhood = (value) => {
     setNeighborhood(value);
     requestAnimationFrame(() => {
-      selectRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
+      selectRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       selectRef.current?.focus();
     });
-  };
-
-  const togglePreference = (item) => {
-    setPreferences((prev) =>
-      prev.includes(item) ? prev.filter((p) => p !== item) : [...prev, item],
-    );
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/waitlist/user`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName, phone, neighborhood, preferences }),
-        },
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Something went wrong");
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -90,9 +40,7 @@ export default function WaitlistSection() {
             Be the first to access City Pulse in your neighborhood.
           </h2>
           <p className="text-lg text-[#14232B]/70">
-            We are rolling out street-by-street across Abeokuta: Panseke, Ibara,
-            Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to
-            unlock immediate beta privileges.
+            We are rolling out street-by-street across Abeokuta: Panseke, Ibara, Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to unlock immediate beta privileges.
           </p>
 
           <div className="flex flex-wrap gap-2 pt-2">
@@ -135,32 +83,22 @@ export default function WaitlistSection() {
               </span>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSubmitted(true);
+              }}
+              className="flex flex-col gap-4"
+            >
               {!submitted ? (
                 <div className="flex flex-col gap-4">
                   <Field label="Full Name" id="full-name">
-                    <input
-                      id="full-name"
-                      required
-                      type="text"
-                      placeholder="e.g. Babatunde Adeyemi"
-                      className={inputClass}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
+                    <input id="full-name" required type="text" placeholder="e.g. Babatunde Adeyemi" className={inputClass} />
                   </Field>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="WhatsApp Number" id="phone-number">
-                      <input
-                        id="phone-number"
-                        required
-                        type="tel"
-                        placeholder="0801 234 5678"
-                        className={inputClass}
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
+                      <input id="phone-number" required type="tel" placeholder="0801 234 5678" className={inputClass} />
                     </Field>
                     <Field label="Your Neighborhood" id="neighborhood-select">
                       <select
@@ -182,39 +120,26 @@ export default function WaitlistSection() {
 
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold text-[#14232B]/60">
-                      What do you search for most? (Live notification
-                      preferences)
+                      What do you search for most? (Live notification preferences)
                     </label>
                     <div className="grid grid-cols-2 gap-2 text-[#14232B]">
-                      {preferenceOptions.map((item) => (
+                      {["POS Cash", "Gas Refills", "Late Food", "Houses/Flats"].map((item, i) => (
                         <label
                           key={item}
                           className="flex items-center gap-2 rounded-xl border border-transparent bg-[#F6F1E6] p-2.5 transition-all hover:bg-[#F0EADB] has-[:checked]:border-[#129E9E]/40 has-[:checked]:bg-[#E4F3F1]"
                         >
-                          <input
-                            className="rounded accent-[#129E9E]"
-                            type="checkbox"
-                            checked={preferences.includes(item)}
-                            onChange={() => togglePreference(item)}
-                          />
+                          <input defaultChecked={i < 2} className="rounded accent-[#129E9E]" type="checkbox" />
                           <span className="text-sm font-medium">{item}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
-                  {error && (
-                    <p className="text-sm font-medium text-red-600">{error}</p>
-                  )}
-
                   <button
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F] disabled:opacity-60"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F]"
                     type="submit"
-                    disabled={loading}
                   >
-                    <span>
-                      {loading ? "Submitting..." : "Secure Early Pilot Pass"}
-                    </span>
+                    <span>Secure Early Pilot Pass</span>
                     <Icon name="verified" size={18} />
                   </button>
                 </div>
@@ -223,12 +148,9 @@ export default function WaitlistSection() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#129E9E] text-[#FAF6EE]">
                     <Icon name="check_circle" size={28} />
                   </div>
-                  <h4 className="text-lg font-bold text-[#14232B]">
-                    You're on the Abeokuta list!
-                  </h4>
+                  <h4 className="text-lg font-bold text-[#14232B]">You're on the Abeokuta list!</h4>
                   <p className="max-w-sm text-sm text-[#14232B]/70">
-                    We've reserved your early invite. Watch your WhatsApp for a
-                    private download link and verified merchant updates.
+                    We've reserved your early invite. Watch your WhatsApp for a private download link and verified merchant updates.
                   </p>
                   <button
                     type="button"
@@ -250,10 +172,7 @@ export default function WaitlistSection() {
 function Field({ label, id, children }) {
   return (
     <div>
-      <label
-        className="mb-1.5 block text-xs font-semibold text-[#14232B]/60"
-        htmlFor={id}
-      >
+      <label className="mb-1.5 block text-xs font-semibold text-[#14232B]/60" htmlFor={id}>
         {label}
       </label>
       {children}

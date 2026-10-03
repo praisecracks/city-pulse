@@ -32,13 +32,13 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a
-              href="#waitlist-section"
+            <Link
+              to="/waitlist"
               className="rounded-full bg-[#129E9E] px-7 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-lg shadow-[#129E9E]/25 transition-colors hover:bg-[#0E7F7F]"
             >
               {/* Download the app */}
               Join Waitlist
-            </a>
+            </Link>
 
             <Link
               to="/"

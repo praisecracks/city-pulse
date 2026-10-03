@@ -5,7 +5,7 @@ const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="relative z-50 mx-auto mt-5 mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:mt-7 sm:w-[90%] sm:px-6 lg:mt-10">
+    <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
       <div className="mx-auto flex min-h-10 max-w-[2048px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
         {/* Logo */}
         <a href="/" className="flex shrink-0 items-center">
@@ -19,7 +19,7 @@ const NavBar = () => {
         {/* Desktop Navigation */}
         <div className="hidden items-center text-sm text-black md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
           <a
-            href="#home"
+            href="/"
             className="font-semibold transition-opacity hover:opacity-70"
           >
             Home
@@ -29,13 +29,13 @@ const NavBar = () => {
             About
           </a>
 
-          <a href="/product" className="transition-opacity hover:opacity-70">
+          {/* <a href="/product" className="transition-opacity hover:opacity-70">
             Product
-          </a>
+          </a> */}
 
-          <a href="/team" className="transition-opacity hover:opacity-70">
+          {/* <a href="/team" className="transition-opacity hover:opacity-70">
             Team
-          </a>
+          </a> */}
         </div>
 
         {/* Desktop Contact Button */}
