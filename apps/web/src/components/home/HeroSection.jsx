@@ -48,14 +48,14 @@ export default function HeroSection() {
           </p>
 
           <div className="flex w-full flex-wrap items-center gap-4 pt-2 sm:w-auto">
-            <a
-              href="#waitlist-section"
+            <Link
+              to="/waitlist"
               className="flex items-center justify-center gap-2 rounded-full bg-[#129E9E] px-7 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F] hover:shadow-lg"
             >
               {/* Download the app */}
               Join the Waitlist
               <ArrowIcon />
-            </a>
+            </Link>
 
             <Link
               to="/about/product"

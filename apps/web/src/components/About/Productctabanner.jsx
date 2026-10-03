@@ -24,7 +24,7 @@ export default function ProductCTABanner() {
           {/* Waitlist lives on Home, not this page — cross-page hash needs
               the ScrollToHash effect noted below to actually scroll. */}
           <Link
-            to="/#waitlist-section"
+            to="/waitlist"
             className="w-full rounded-full bg-white px-8 py-4 text-center text-sm font-semibold text-[#129E9E] shadow-md transition-all hover:bg-[#FAF6EE] sm:w-auto"
           >
             Join the Abeokuta Waitlist

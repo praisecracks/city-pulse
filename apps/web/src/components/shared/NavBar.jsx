@@ -19,7 +19,7 @@ const NavBar = () => {
         {/* Desktop Navigation */}
         <div className="hidden items-center text-sm text-black md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
           <a
-            href="#home"
+            href="/"
             className="font-semibold transition-opacity hover:opacity-70"
           >
             Home
@@ -29,13 +29,13 @@ const NavBar = () => {
             About
           </a>
 
-          <a href="/product" className="transition-opacity hover:opacity-70">
+          {/* <a href="/product" className="transition-opacity hover:opacity-70">
             Product
-          </a>
+          </a> */}
 
-          <a href="/team" className="transition-opacity hover:opacity-70">
+          {/* <a href="/team" className="transition-opacity hover:opacity-70">
             Team
-          </a>
+          </a> */}
         </div>
 
         {/* Desktop Contact Button */}

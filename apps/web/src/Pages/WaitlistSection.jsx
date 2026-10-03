@@ -4,8 +4,6 @@ import WaitlistSidebar from "../components/Waitlist/WaitlistSidebar";
 import WaitlistPerks from "../components/Waitlist/WaitlistPerks";
 import WaitlistMapRadar from "../components/Waitlist/WaitlistMapRadar";
 import WaitlistFAQ from "../components/Waitlist/WaitlistFAQ";
-import Footer from "../components/shared/Footer";
-import Navbar from "../components/shared/NavBar";
 
 // W1 — Home, waitlist region (PRD Section 6). id="waitlist-section" is the
 // scroll target every #waitlist-section link across the site points to —

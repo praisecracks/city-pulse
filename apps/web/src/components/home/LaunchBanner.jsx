@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function LaunchBanner() {
   return (
     <section className="relative w-full overflow-hidden bg-[#129E9E] px-6 py-4 text-[#FAF6EE] md:px-12">
@@ -18,12 +20,12 @@ export default function LaunchBanner() {
             </p>
           </div>
         </div>
-        <a
-          href="/#waitlist-section"
+        <Link
+          to="/waitlist"
           className="whitespace-nowrap rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#129E9E] shadow-sm transition-all"
         >
           Join the waitlist
-        </a>
+        </Link>
       </div>
     </section>
   );

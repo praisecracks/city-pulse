@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { categories, telemetryData } from "../../data/telemetry";
 import Icon from "../shared/Icon";
+import { Link } from "react-router-dom";
 
 export default function EverydayNeedsSection() {
   const [active, setActive] = useState("pos");
@@ -139,13 +140,13 @@ export default function EverydayNeedsSection() {
                   {data.trustLabel}
                 </span>
               </div>
-              <a
-                href="#waitlist-section"
+              <Link
+                to="/waitlist"
                 className="flex items-center gap-1.5 rounded-full bg-[#129E9E] px-5 py-2.5 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F]"
               >
                 <span>Get Radar Alert</span>
                 <Icon name="arrow_forward" size={16} />
-              </a>
+              </Link>
             </div>
           </div>
 

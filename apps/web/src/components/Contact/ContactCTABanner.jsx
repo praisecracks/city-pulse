@@ -14,13 +14,14 @@ export default function ContactCTABanner() {
             Ready to stop guessing and start knowing?
           </h2>
           <p className="text-base leading-relaxed text-[#FAF6EE]/80">
-            Get live neighborhood utility intelligence right on your phone. Join the Abeokuta early pilot waitlist or list your kiosk today.
+            Get live neighborhood utility intelligence right on your phone. Join
+            the Abeokuta early pilot waitlist or list your kiosk today.
           </p>
         </div>
 
         <div className="z-10 flex w-full flex-col items-center gap-4 sm:flex-row md:w-auto">
           <Link
-            to="/#waitlist-section"
+            to="/waitlist"
             className="w-full rounded-full bg-white px-8 py-3.5 text-center text-sm font-semibold text-[#129E9E] shadow-sm transition-all hover:bg-[#FAF6EE] sm:w-auto"
           >
             Join Waitlist
