@@ -1,18 +1,15 @@
-import { useRef, useState } from "react";
+// import { useRef, useState } from "react";
 import Icon from "../shared/Icon";
 import { Link } from "react-router-dom";
 
-const neighborhoods = [
-  ["panseke", "📍 Panseke"],
-  ["ibara", "📍 Ibara Housing"],
-  ["camp", "📍 FUNAAB / Camp"],
-  ["adigbe", "📍 Adigbe"],
-  ["kuto", "📍 Kuto Market"],
-  ["other", "📍 Omida"],
-];
-
-const inputClass =
-  "w-full rounded-xl border border-[#14232B]/15 bg-white px-4 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:border-[#129E9E] focus:outline-none focus:ring-2 focus:ring-[#129E9E]/20";
+// const neighborhoods = [
+//   ["panseke", "📍 Panseke"],
+//   ["ibara", "📍 Ibara Housing"],
+//   ["camp", "📍 FUNAAB / Camp"],
+//   ["adigbe", "📍 Adigbe"],
+//   ["kuto", "📍 Kuto Market"],
+//   ["other", "📍 Omida"],
+// ];
 
 export default function WaitlistSection() {
   return (
@@ -33,19 +30,6 @@ export default function WaitlistSection() {
             Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to
             unlock immediate beta privileges.
           </p>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            {neighborhoods.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => chooseNeighborhood(value)}
-                className="rounded-full border border-transparent bg-white px-3.5 py-1.5 text-xs font-semibold text-[#14232B]/70 shadow-sm transition-all hover:border-[#129E9E] hover:text-[#129E9E]"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
 
           <div className="flex items-center gap-3 pt-4 text-sm text-[#14232B]/70">
             <Icon name="groups" size={20} className="text-[#129E9E]" />
@@ -90,19 +74,5 @@ export default function WaitlistSection() {
         </div>
       </div>
     </section>
-  );
-}
-
-function Field({ label, id, children }) {
-  return (
-    <div>
-      <label
-        className="mb-1.5 block text-xs font-semibold text-[#14232B]/60"
-        htmlFor={id}
-      >
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
