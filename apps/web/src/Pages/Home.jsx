@@ -23,7 +23,7 @@ export default function Home() {
       <HowItWorksSection />
       {/* <EverydayNeedsSection /> */}
       {/* <MerchantSection onOpenModal={() => setMerchantModalOpen(true)} /> */}
-      <WaitlistSection />
+      {/* <WaitlistSection /> */}
       {/* <MerchantModal
         open={merchantModalOpen}
         onClose={() => setMerchantModalOpen(false)}

@@ -46,14 +46,14 @@ export default function ParadigmShift() {
     >
       <div className="mx-auto mb-16 max-w-2xl text-center">
         <span className="text-xs font-bold uppercase tracking-wider text-[#129E9E]">
-          The Fundamental Paradigm Shift
+          Why City Pulse Is Different
         </span>
         <h2 className="mt-2 font-[Baloo_2] text-3xl font-bold tracking-tight text-[#14232B] sm:text-4xl">
-          Why Global Maps Fail at the Local Street Level
+          Maps show you where. We show you what's happening now.
         </h2>
         <p className="mt-2 text-base text-[#14232B]/70">
-          Static directories capture coordinates. City Pulse captures{" "}
-          <em>inventory, energy, and human presence</em> in real time.
+          Google Maps can tell you a shop exists. It can't tell you if they have
+          stock, cash, or are even open right now. City Pulse can.
         </p>
       </div>
 

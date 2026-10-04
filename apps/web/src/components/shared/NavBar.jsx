@@ -1,52 +1,61 @@
 import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import Logo from "../../assets/Logo.png";
+
+const navLinks = [
+  { to: "/", label: "Home", end: true },
+  { to: "/about", label: "Explore" },
+  { to: "/waitlist", label: "Waitlist" },
+];
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const linkClass = ({ isActive }) =>
+    `transition-opacity hover:opacity-70 ${
+      isActive ? "font-semibold text-[#08a890]" : "text-black"
+    }`;
+
+  const mobileLinkClass = ({ isActive }) =>
+    `transition-opacity hover:opacity-70 ${
+      isActive ? "font-semibold text-[#08a890]" : "text-black"
+    }`;
+
   return (
     <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
       <div className="mx-auto flex min-h-10 max-w-[2048px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
-        {/* Logo */}
-        <a href="/" className="flex shrink-0 items-center">
+        <NavLink to="/" className="flex shrink-0 items-center">
           <img
             src={Logo}
             alt="City Pulse"
             className="h-8 w-auto object-contain sm:h-9 md:h-10"
           />
-        </a>
+        </NavLink>
 
-        {/* Desktop Navigation */}
         <div className="hidden items-center text-sm text-black md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
-          <a
-            href="/"
-            className="font-semibold transition-opacity hover:opacity-70"
-          >
-            Home
-          </a>
-
-          <a href="/about" className="transition-opacity hover:opacity-70">
-            About
-          </a>
-
-          {/* <a href="/product" className="transition-opacity hover:opacity-70">
-            Product
-          </a> */}
-
-          {/* <a href="/team" className="transition-opacity hover:opacity-70">
-            Team
-          </a> */}
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={linkClass}
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </div>
 
-        {/* Desktop Contact Button */}
-        <a
-          href="/contact"
-          className="hidden rounded-full bg-[#08a890] px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-[#078f7b] md:block lg:px-5 lg:text-[16px]"
+        <NavLink
+          to="/contact"
+          className={({ isActive }) =>
+            `hidden rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors md:block lg:px-5 lg:text-[16px] ${
+              isActive ? "bg-[#078f7b]" : "bg-[#08a890] hover:bg-[#078f7b]"
+            }`
+          }
         >
           Contact Us
-        </a>
+        </NavLink>
 
-        {/* Mobile Menu Button */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -88,49 +97,28 @@ const NavBar = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isOpen && (
         <div className="absolute top-[calc(100%+10px)] left-0 w-full rounded-3xl border border-gray-200 bg-white p-5 shadow-lg md:hidden">
-          <div className="flex flex-col gap-4 text-[15px] text-black">
-            <a
-              href="#home"
-              onClick={() => setIsOpen(false)}
-              className="font-semibold transition-opacity hover:opacity-70"
-            >
-              Home
-            </a>
+          <div className="flex flex-col gap-4 text-[15px]">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                onClick={() => setIsOpen(false)}
+                className={mobileLinkClass}
+              >
+                {link.label}
+              </NavLink>
+            ))}
 
-            <a
-              href="#about"
-              onClick={() => setIsOpen(false)}
-              className="transition-opacity hover:opacity-70"
-            >
-              About
-            </a>
-
-            <a
-              href="#product"
-              onClick={() => setIsOpen(false)}
-              className="transition-opacity hover:opacity-70"
-            >
-              Product
-            </a>
-
-            <a
-              href="#team"
-              onClick={() => setIsOpen(false)}
-              className="transition-opacity hover:opacity-70"
-            >
-              Team
-            </a>
-
-            <a
-              href="/contact"
+            <NavLink
+              to="/contact"
               onClick={() => setIsOpen(false)}
               className="mt-1 w-full rounded-full bg-[#08a890] px-5 py-2.5 text-center font-semibold text-white transition-colors hover:bg-[#078f7b]"
             >
               Contact Us
-            </a>
+            </NavLink>
           </div>
         </div>
       )}

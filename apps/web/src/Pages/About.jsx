@@ -1,7 +1,7 @@
 import ProductHero from "../components/About/Producthero";
 import ScarcityStories from "../components/About/Scarcitystories";
 import ParadigmShift from "../components/About/Paradigmshift";
-import CategoriesDeepDive from "../components/About/Categoriesdeepdive";
+// import CategoriesDeepDive from "../components/About/Categoriesdeepdive";
 import TrustEngine from "../components/About/Trustengine";
 import RoadmapSection from "../components/About/Roadmapsection";
 import ProductCTABanner from "../components/About/Productctabanner";
@@ -12,7 +12,7 @@ const About = () => {
       <ProductHero />
       <ScarcityStories />
       <ParadigmShift />
-      <CategoriesDeepDive />
+      {/* <CategoriesDeepDive /> */}
       <TrustEngine />
       <RoadmapSection />
       <ProductCTABanner />

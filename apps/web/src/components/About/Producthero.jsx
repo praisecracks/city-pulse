@@ -52,6 +52,7 @@ export default function ProductHero() {
           iconClass="text-[#B5453B]"
           value="₦2,500+"
           note="Weekly transport fare drained on futile okada trips to unstocked stalls."
+          strikeValue
         />
         <StatCard
           label="The Staleness Guard"
@@ -82,6 +83,7 @@ function StatCard({
   value,
   valueClass = "text-[#14232B]",
   note,
+  strikeValue = false,
 }) {
   return (
     <div className="flex flex-col justify-between rounded-xl bg-white p-6 shadow-[0_4px_20px_-2px_rgba(20,35,43,0.06)]">
@@ -94,7 +96,9 @@ function StatCard({
         <Icon name={icon} size={22} className={iconClass} />
       </div>
       <div
-        className={`font-[Baloo_2] text-3xl font-extrabold tracking-tight ${valueClass}`}
+        className={`font-[Baloo_2] text-3xl font-extrabold tracking-tight ${valueClass} ${
+          strikeValue ? "line-through decoration-2" : ""
+        }`}
       >
         {value}
       </div>

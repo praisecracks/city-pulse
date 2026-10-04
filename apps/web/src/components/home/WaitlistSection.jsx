@@ -1,4 +1,4 @@
-// import { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Icon from "../shared/Icon";
 
 const neighborhoods = [
@@ -21,7 +21,10 @@ export default function WaitlistSection() {
   const chooseNeighborhood = (value) => {
     setNeighborhood(value);
     requestAnimationFrame(() => {
-      selectRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      selectRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
       selectRef.current?.focus();
     });
   };
@@ -40,7 +43,9 @@ export default function WaitlistSection() {
             Be the first to access City Pulse in your neighborhood.
           </h2>
           <p className="text-lg text-[#14232B]/70">
-            We are rolling out street-by-street across Abeokuta: Panseke, Ibara, Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to unlock immediate beta privileges.
+            We are rolling out street-by-street across Abeokuta: Panseke, Ibara,
+            Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to
+            unlock immediate beta privileges.
           </p>
 
           <div className="flex flex-wrap gap-2 pt-2">
@@ -93,12 +98,24 @@ export default function WaitlistSection() {
               {!submitted ? (
                 <div className="flex flex-col gap-4">
                   <Field label="Full Name" id="full-name">
-                    <input id="full-name" required type="text" placeholder="e.g. Babatunde Adeyemi" className={inputClass} />
+                    <input
+                      id="full-name"
+                      required
+                      type="text"
+                      placeholder="e.g. Babatunde Adeyemi"
+                      className={inputClass}
+                    />
                   </Field>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="WhatsApp Number" id="phone-number">
-                      <input id="phone-number" required type="tel" placeholder="0801 234 5678" className={inputClass} />
+                      <input
+                        id="phone-number"
+                        required
+                        type="tel"
+                        placeholder="0801 234 5678"
+                        className={inputClass}
+                      />
                     </Field>
                     <Field label="Your Neighborhood" id="neighborhood-select">
                       <select
@@ -120,15 +137,25 @@ export default function WaitlistSection() {
 
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold text-[#14232B]/60">
-                      What do you search for most? (Live notification preferences)
+                      What do you search for most? (Live notification
+                      preferences)
                     </label>
                     <div className="grid grid-cols-2 gap-2 text-[#14232B]">
-                      {["POS Cash", "Gas Refills", "Late Food", "Houses/Flats"].map((item, i) => (
+                      {[
+                        "POS Cash",
+                        "Gas Refills",
+                        "Late Food",
+                        "Houses/Flats",
+                      ].map((item, i) => (
                         <label
                           key={item}
                           className="flex items-center gap-2 rounded-xl border border-transparent bg-[#F6F1E6] p-2.5 transition-all hover:bg-[#F0EADB] has-[:checked]:border-[#129E9E]/40 has-[:checked]:bg-[#E4F3F1]"
                         >
-                          <input defaultChecked={i < 2} className="rounded accent-[#129E9E]" type="checkbox" />
+                          <input
+                            defaultChecked={i < 2}
+                            className="rounded accent-[#129E9E]"
+                            type="checkbox"
+                          />
                           <span className="text-sm font-medium">{item}</span>
                         </label>
                       ))}
@@ -148,9 +175,12 @@ export default function WaitlistSection() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#129E9E] text-[#FAF6EE]">
                     <Icon name="check_circle" size={28} />
                   </div>
-                  <h4 className="text-lg font-bold text-[#14232B]">You're on the Abeokuta list!</h4>
+                  <h4 className="text-lg font-bold text-[#14232B]">
+                    You're on the Abeokuta list!
+                  </h4>
                   <p className="max-w-sm text-sm text-[#14232B]/70">
-                    We've reserved your early invite. Watch your WhatsApp for a private download link and verified merchant updates.
+                    We've reserved your early invite. Watch your WhatsApp for a
+                    private download link and verified merchant updates.
                   </p>
                   <button
                     type="button"
@@ -172,7 +202,10 @@ export default function WaitlistSection() {
 function Field({ label, id, children }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold text-[#14232B]/60" htmlFor={id}>
+      <label
+        className="mb-1.5 block text-xs font-semibold text-[#14232B]/60"
+        htmlFor={id}
+      >
         {label}
       </label>
       {children}
