@@ -8,14 +8,16 @@ const asyncHandler = require("../utils/asyncHandler");
  * @access  Public
  */
 exports.joinUserWaitlist = asyncHandler(async (req, res) => {
-    const { fullName, phone, neighborhood, preferences } = req.body;
+    const { fullName, email, phone, neighborhood, preferences } = req.body;
 
-    const existing = await UserWaitlist.findOne({ phone });
+    const existing = await UserWaitlist.findOne({
+        $or: [{ email }, { phone }]
+    });
     if (existing) {
-        return res.status(409).json({ success: false, message: "This phone number is already on the waitlist" });
+        return res.status(409).json({ success: false, message: "This email or phone number is already on the waitlist" });
     }
 
-    const entry = await UserWaitlist.create({ fullName, phone, neighborhood, preferences });
+    const entry = await UserWaitlist.create({ fullName, email, phone, neighborhood, preferences });
     res.status(201).json({ success: true, data: entry });
 });
 
@@ -25,14 +27,16 @@ exports.joinUserWaitlist = asyncHandler(async (req, res) => {
  * @access  Public
  */
 exports.joinAgentWaitlist = asyncHandler(async (req, res) => {
-    const { businessName, serviceType, phone } = req.body;
+    const { businessName, email, serviceType, phone, whatsappPhone } = req.body;
 
-    const existing = await AgentWaitlist.findOne({ phone });
+    const existing = await AgentWaitlist.findOne({
+        $or: [{ email }, { phone }]
+    });
     if (existing) {
-        return res.status(409).json({ success: false, message: "This phone number is already on the waitlist" });
+        return res.status(409).json({ success: false, message: "This email or phone number is already on the waitlist" });
     }
 
-    const entry = await AgentWaitlist.create({ businessName, serviceType, phone });
+    const entry = await AgentWaitlist.create({ businessName, email, serviceType, phone, whatsappPhone });
     res.status(201).json({ success: true, data: entry });
 });
 

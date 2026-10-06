@@ -7,6 +7,13 @@ const userWaitlistSchema = new mongoose.Schema(
             required: [true, "Full name is required"],
             trim: true,
         },
+        email: {
+            type: String,
+            required: [true, "Email is required"],
+            unique: true,
+            trim: true,
+            lowercase: true,
+        },
         phone: {
             type: String,
             required: [true, "Phone is required"],
