@@ -1,7 +1,7 @@
 import HeroSection from "../components/home/HeroSection";
 import LaunchBanner from "../components/home/LaunchBanner";
 import StatsSection from "../components/home/StatsSection";
-import HowItWorksSection from "../components/home/HowItWorksSection";
+import Howitworkssection from "../components/home/Howitworkssection";
 // import EverydayNeedsSection from "../components/home/EverydayNeedsSection";
 // import MerchantSection from "../components/home/MerchantSection";
 // import MerchantModal from "../components/home/MerchantModal";
@@ -20,7 +20,7 @@ export default function Home() {
       <HeroSection />
       <LaunchBanner />
       <StatsSection />
-      <HowItWorksSection />
+      <Howitworkssection />
       {/* <EverydayNeedsSection /> */}
       {/* <MerchantSection onOpenModal={() => setMerchantModalOpen(true)} /> */}
       {/* <WaitlistSection /> */}

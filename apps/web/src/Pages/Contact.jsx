@@ -1,7 +1,7 @@
-import ContactHero from "../components/contact/ContactHero";
-import ContactForm from "../components/contact/ContactForm";
-import ContactFAQ from "../components/contact/ContactFAQ";
-import ContactCTABanner from "../components/contact/ContactCTABanner";
+import ContactHero from "../components/Contact/ContactHero";
+import ContactForm from "../components/Contact/ContactForm";
+import ContactFAQ from "../components/Contact/ContactFAQ";
+import ContactCTABanner from "../components/Contact/ContactCTABanner";
 
 // W5 — Contact Us (PRD Section 6). Route: /contact
 export default function Contact() {
