@@ -9,11 +9,11 @@ export default function ProductHero() {
       <div className="flex max-w-4xl flex-col items-start gap-6">
         <div className="inline-flex items-center gap-2.5 rounded-full bg-[#F0EADB] px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#129E9E] shadow-sm">
           <span className="h-2 w-2 animate-pulse rounded-full bg-[#129E9E]" />
-          About The Product • Core Architecture &amp; Value
+          About City Pulse
         </div>
 
         <h1 className="font-[Baloo_2] text-4xl font-bold tracking-tight text-[#14232B] sm:text-5xl lg:text-6xl">
-          Built to eliminate{" "}
+          Built to end{" "}
           <span className="text-[#129E9E] underline decoration-[#129E9E]/20 underline-offset-8">
             blind trips
           </span>{" "}
@@ -21,10 +21,10 @@ export default function ProductHero() {
         </h1>
 
         <p className="max-w-2xl text-lg text-[#14232B]/70">
-          In Nigerian daily life, searching for open POS points, cooking gas
-          refills, fresh food, or trusted house agents costs hours of time and
-          hard-earned cash. City Pulse turns urban uncertainty into real-time
-          certainty.
+          In daily life across Nigeria, finding fresh food, cooking gas, a
+          trusted house agent or an open POS point can cost hours of time and
+          hard-earned cash. City Pulse shows you what is available near you
+          right now, so you can go with confidence.
         </p>
 
         <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -32,14 +32,14 @@ export default function ProductHero() {
             href="#paradigm-shift"
             className="flex items-center gap-2 rounded-full bg-[#129E9E] px-6 py-3 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F]"
           >
-            <span>Explore The Engine</span>
+            <span>See What Makes It Different</span>
             <Icon name="arrow_downward" size={18} />
           </a>
           <a
             href="#four-categories"
-            className="flex items-center gap-2 rounded-full bg-[#F6F1E6] px-6 py-3 text-sm font-semibold text-[#14232B] transition-all hover:bg-[#F0EADB]"
+            className="flex items-center gap-2 rounded-full bg-[#129E9E] px-6 py-3 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F]"
           >
-            <span>See The 4 Core Verticals</span>
+            <span>See What You Can Find</span>
             <Icon name="category" size={18} />
           </a>
         </div>
@@ -47,28 +47,28 @@ export default function ProductHero() {
 
       <div className="mt-14 grid grid-cols-1 gap-5 sm:mt-16 md:grid-cols-3">
         <StatCard
-          label="Average Friction Cost"
+          label="The Cost Of A Blind Trip"
           icon="trending_down"
           iconClass="text-[#B5453B]"
-          value="₦2,500+"
-          note="Weekly transport fare drained on futile okada trips to unstocked stalls."
+          value="Wasted Fare"
+          note="Every trip to a place that is closed or out of stock costs you transport money and time."
           strikeValue
         />
         <StatCard
-          label="The Staleness Guard"
+          label="Always Fresh"
           labelClass="text-[#129E9E]"
           icon="timer"
           iconClass="text-[#129E9E]"
-          value="15-Min Decay"
+          value="3-Hour Expiry"
           valueClass="text-[#129E9E]"
-          note="Data automatically dims if a merchant hasn't signaled live status within the window."
+          note="A listing shows as Unconfirmed if the provider hasn't updated their status within 3 hours."
         />
         <StatCard
           label="Local Accountability"
           icon="verified_user"
           iconClass="text-[#129E9E]"
-          value="100% Grounded"
-          note="Coordinators stationed physically in Panseke, Ibara, Camp & Omida."
+          value="On The Ground"
+          note="Our field team signs up and verifies providers in person, starting in Abeokuta South."
         />
       </div>
     </section>

@@ -320,6 +320,22 @@ export default function Icon({ name, size = 18, className = "", strokeWidth = 1.
           <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
         </svg>
       );
+    case "shopping_cart":
+      return (
+        <svg {...props}>
+          <circle cx="9" cy="19" r="1.5" stroke="currentColor" strokeWidth={s} />
+          <circle cx="19" cy="19" r="1.5" stroke="currentColor" strokeWidth={s} />
+          <path d="M2 6h4l2.5 10h11l2-8H6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "print":
+      return (
+        <svg {...props}>
+          <rect x="4" y="3" width="16" height="14" rx="1" stroke="currentColor" strokeWidth={s} />
+          <path d="M8 7h8M8 11h4M8 15h6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+          <path d="M12 17v3" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
     case "build":
       return (
         <svg {...props}>

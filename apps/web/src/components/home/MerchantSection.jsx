@@ -15,7 +15,7 @@ export default function MerchantSection({ onOpenModal }) {
               Run a business in Abeokuta? Put your business on the pulse.
             </h2>
             <p className="max-w-2xl text-lg text-[#14232B]/70">
-              Whether you operate a POS kiosk at Ibara Roundabout, manage cooking gas refills in Camp, cook meals in Adigbe, or list apartments across Ogun State — get discovered by customers ready to buy this second.
+              Whether you operate a POS kiosk in Okemoson, manage cooking gas refills nearby, cook meals in the area, or list apartments across Abeokta South — get discovered by customers ready to buy this second.
             </p>
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <button

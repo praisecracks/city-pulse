@@ -2,39 +2,39 @@ import Icon from "../shared/Icon";
 
 const STATIC_CONS = [
   [
-    "Existence vs. Readiness",
-    "Tells you a commercial building was registered in 2021, but completely blind to whether it is operating at this exact hour.",
+    "Existence, not readiness",
+    "Shows that a shop is there, but not whether it is open and serving right now.",
   ],
   [
-    "Zero Stock Transparency",
-    "Cannot tell you if a POS terminal has ₦50k in cash, or if the gas depot has metric gas left in reserve.",
+    "No stock or cash visibility",
+    "Can't tell you if a vendor has food ready, a seller has gas, or an agent has cash.",
   ],
   [
-    "Stale Operating Calendars",
-    'Relies on generic "Open 9AM - 6PM" templates updated years ago that ignore public holidays, generator outages, or rain delays.',
+    "Hours that go out of date",
+    "Listed hours often miss public holidays, power cuts and bad weather.",
   ],
   [
-    "Phantom Agent Exploits",
-    "Unchecked user submissions enable predatory property agents to post stock photos of apartments that don't exist.",
+    "Listings you can't always trust",
+    "Anyone can post a listing, so fake or outdated entries get through, including apartments that don't exist.",
   ],
 ];
 
 const RADAR_PROS = [
   [
-    "The 15-Minute Expiration Rule",
-    "Pins automatically fade if an operator hasn't tapped their state heartbeat. Only live, running spots shine bright on your radar.",
+    "Status that expires",
+    "If a provider doesn't confirm their status within 3 hours, the listing shows as Unconfirmed instead of misleading you.",
   ],
   [
-    "1-Tap Merchant Float Toggles",
-    'POS vendors switch between "Full Cash Dispense", "Low Float", or "Network Down" via a zero-data WhatsApp bot or ultra-lite web app.',
+    "Providers update in one tap",
+    "Providers mark themselves available, running low or unavailable with a single tap.",
   ],
   [
-    "Grounded Community Validation",
-    'Scores earned through continuous accuracy verified by neighborhood shoppers tapping quick "Still Serving" feedback.',
+    "Trust scores from the community",
+    "Every listing has a 1–5 trust score, built from verification and feedback from people who used it.",
   ],
   [
-    "Direct Middleman-Free WhatsApp Chat",
-    "Connect instantly to real landlords and verified merchants. No extortionate second-party fees or misleading photo bait.",
+    "Contact providers directly",
+    "Call or WhatsApp the provider yourself, with no middleman.",
   ],
 ];
 
@@ -52,8 +52,8 @@ export default function ParadigmShift() {
           Maps show you where. We show you what's happening now.
         </h2>
         <p className="mt-2 text-base text-[#14232B]/70">
-          Google Maps can tell you a shop exists. It can't tell you if they have
-          stock, cash, or are even open right now. City Pulse can.
+          Google Maps tells you a place exists. City Pulse tells you if it's
+          available right now, and how much to trust it.
         </p>
       </div>
 
@@ -68,15 +68,15 @@ export default function ParadigmShift() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-[#14232B]">
-                    Static Global Maps
+                    Maps and Directories
                   </h3>
                   <span className="text-xs text-[#14232B]/50">
-                    Google Maps, Apple Maps, Global Directories
+                    Google Maps, Apple Maps, online directories
                   </span>
                 </div>
               </div>
               <span className="rounded-full bg-[#F5E3E0] px-3 py-1 text-xs font-semibold text-[#B5453B]">
-                Decoupled from Reality
+                Shows Places, Not Availability
               </span>
             </div>
 
@@ -104,7 +104,7 @@ export default function ParadigmShift() {
               Outcome For The Citizen
             </span>
             <p className="mt-1 text-sm font-medium text-[#B5453B]">
-              High anxiety, repeated taxi expenditures, wasted afternoons.
+              Wasted trips, extra transport fare, lost time.
             </p>
           </div>
         </div>
@@ -120,15 +120,15 @@ export default function ParadigmShift() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-[#14232B]">
-                    City Pulse Live Radar
+                    City Pulse
                   </h3>
                   <span className="text-xs font-semibold text-[#129E9E]">
-                    Autonomous Dynamic State Engine
+                    Live local availability
                   </span>
                 </div>
               </div>
               <span className="rounded-full bg-[#129E9E] px-3 py-1 text-xs font-semibold text-[#FAF6EE]">
-                Real-Time Sync
+                Live Status
               </span>
             </div>
 
@@ -156,7 +156,7 @@ export default function ParadigmShift() {
               Outcome For The Citizen
             </span>
             <p className="mt-1 text-sm font-bold text-[#129E9E]">
-              Direct destination trips, guaranteed inventory, zero blind walks.
+              Go straight to what is open. Fewer wasted trips.
             </p>
           </div>
         </div>

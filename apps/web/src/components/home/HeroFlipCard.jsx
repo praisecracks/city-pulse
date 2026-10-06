@@ -55,10 +55,10 @@ export default function HeroFlipCard() {
           >
             <CardFace
               image={img}
-              badge="Panseke: 14 POS Agents Active"
+              badge="Okemoson: 14 POS Agents Active"
               buttonText="Flip"
               icon={<RefreshIcon />}
-              title="TotalEnergies Omida"
+              title="TotalEnergies Okemoson"
               status="In Stock"
               detail="Cooking Gas 12.5kg • Refill queue: 4 mins"
               detailIcon={<FuelIcon />}
@@ -68,7 +68,7 @@ export default function HeroFlipCard() {
             <CardFace
               back
               image={img}
-              badge="Omida Market: Live Merchant Status"
+              badge="Okemoson Market: Live Merchant Status"
               buttonText="Flip Back"
               icon={<ReplayIcon />}
               title="Bola Provision & Gas Depot"

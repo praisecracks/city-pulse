@@ -28,7 +28,7 @@ export default function HeroSection() {
               Live Abeokuta Radar Active
             </span>
             <span className="text-[#14232B]/40">•</span>
-            <span className="text-[#14232B]/60">Panseke, Ibara, Kuto</span>
+            <span className="text-[#14232B]/60">Okemoson, Abeokta South</span>
           </div> */}
 
           <h1 className="font-[Baloo_2] text-4xl font-bold leading-[1.05] tracking-tight text-[#14232B] sm:text-5xl lg:text-6xl">
@@ -42,9 +42,9 @@ export default function HeroSection() {
           </h1>
 
           <p className="max-w-xl text-lg leading-relaxed text-[#14232B]/70">
-            Tired of wasted trips and transport fare searching for open POS
-            points, cooking gas, fresh food, or trusted house agents? City Pulse
-            checks who has what in stock in real time.
+            Tired of wasted trips and transport fare searching for what's
+            actually available? City Pulse shows real-time status for house
+            agents, cooking gas, food vendors, and cash near you.
           </p>
 
           <div className="flex w-full flex-wrap items-center gap-4 pt-2 sm:w-auto">
@@ -52,17 +52,17 @@ export default function HeroSection() {
               to="/waitlist"
               className="flex items-center justify-center gap-2 rounded-full bg-[#129E9E] px-7 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F] hover:shadow-lg"
             >
-              {/* Download the app */}
+              {/* Join the waitlist */}
               Join the Waitlist
               <ArrowIcon />
             </Link>
 
             <Link
-              to="/about/product"
+              to="/about"
               className="flex items-center justify-center gap-2 rounded-full border border-[#14232B]/10 bg-white px-6 py-3.5 text-sm font-semibold text-[#129E9E] shadow-sm transition-all hover:bg-[#E4F3F1]"
             >
               <PlayIcon />
-              <span>See how it works</span>
+              <span>What is City Pulse?</span>
             </Link>
           </div>
 

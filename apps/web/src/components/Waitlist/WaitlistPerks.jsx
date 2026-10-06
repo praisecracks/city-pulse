@@ -3,21 +3,21 @@ import Icon from "../shared/Icon";
 const PERKS = [
   {
     icon: "notifications_active",
-    title: "Zero-Fare Guesswork",
-    text: 'Never pay bike or cab transport to an ATM or POS kiosk only to hear "no network" or "cash finished". Receive live status radar directly in your pocket.',
-    meta: "Batch 1 Residents receive instant priority pings",
+    title: "Never Waste a Trip Again",
+    text: "Know before you go. Get real-time alerts when POS has cash, gas depots have stock, or your favorite food spot is open — straight to your phone.",
+    meta: "Batch 1 gets priority access",
   },
   {
     icon: "groups",
-    title: "120+ Ground Stewards",
-    text: "Trained student coordinators across FUNAAB and MAPOLY physically visit kiosks and calibrate operational hours to guarantee zero fake agents.",
-    meta: "Every merchant gets physical verification",
+    title: "Verified by Real People",
+    text: "Our 120+ local stewards physically visit every shop and agent. No fake listings, no ghost agents — only places that are actually open and serving.",
+    meta: "Every merchant verified in person",
   },
   {
     icon: "trending_up",
-    title: "Direct Foot Traffic Routing",
-    text: "When you broadcast available cash or replenished cooking gas cylinders, nearby residents within a 2km radius are routed directly to your door.",
-    meta: "Free physical window badge during rollout",
+    title: "Be Found by Ready Customers",
+    text: "When you update your status — cash available, gas in stock, rooms vacant — nearby residents see it instantly and come straight to you.",
+    meta: "Free verified badge for early merchants",
   },
 ];
 
@@ -32,8 +32,8 @@ export default function WaitlistPerks() {
           Why Early Registration Matters
         </h2>
         <p className="text-base text-[#14232B]/70">
-          We are deploying street by street to avoid inaccurate data or ghost
-          listings. Here is what pilot members receive on day one.
+          We're rolling out street by street in Abeokuta. Early registrants get
+          first access and help shape the service for their neighborhood.
         </p>
       </div>
 

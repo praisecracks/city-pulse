@@ -4,7 +4,7 @@ const STEPS = [
   [
     "01",
     "Physical Coordinator Onboarding",
-    "We do not scrape the web. Local coordinators walk every sector of Abeokuta—from Panseke footpaths to Ibara commercial clusters—to register agents in person, confirming their identity and operating equipment.",
+    "We do not scrape the web. Local coordinators walk every sector of Okemoson—to confirm provider identity and operating equipment before any listing goes live.",
   ],
   [
     "02",

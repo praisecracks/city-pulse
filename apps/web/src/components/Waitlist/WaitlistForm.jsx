@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../shared/Icon";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
 const inputWrap =
   "flex items-center rounded-2xl bg-[#F6F1E6] px-4 py-3 transition-all focus-within:bg-white focus-within:shadow-[0_0_0_2px_#129E9E]";
@@ -8,56 +10,42 @@ const inputBase =
 const selectBase = `${inputBase} cursor-pointer appearance-none`;
 
 const PAINPOINTS = [
-  ["pos", "Cash-dispensing POS points with low queues & low charges", true],
-  ["gas", "Cooking gas plant live stock & verified per-kg rates", true],
-  ["food", "Open Bukateria, hot amala, & late-night grills", false],
-  [
-    "housing",
-    "Verified self-contain & flats with zero bogus agency fees",
-    false,
-  ],
+  ["housing", "House Agents / Property"],
+  ["food", "Food Vendors / Restaurants"],
+  ["gas", "Gas Refill"],
+  ["pos", "POS / Cash Withdrawal"],
 ];
 
 const NEIGHBORHOODS = [
-  ["panseke", "Panseke (Omida Road, Flyover, Onikolobo axis)"],
-  ["ibara", "Ibara GRA & Lalubu Commercial District"],
-  ["camp", "Camp & FUNAAB Gate Corridor"],
-  ["adigbe", "Adigbe & Opako Axis"],
-  ["omida", "Omida Market & Sapon"],
-  ["kuto", "Kuto Motor Park & Isale-Igbein"],
-  ["obantoko", "Obantoko & Asero Corridor"],
-  ["mapoly", "MAPOLY Campus / Ojere Outskirts"],
+  ["okemoson", "Okemoson / Secretariat"],
+  ["ibara", "Ibara"],
+  ["adigbe", "Adigbe / Opako"],
+  ["kuto", "Kuto Market"],
+  ["other", "Other Abeokuta South"],
 ];
 
 const CATEGORIES = [
-  ["pos", "POS Terminal / Cash Agent"],
-  ["gas", "Cooking Gas Refill Depot"],
-  ["food", "Bukateria / Street Grills / Food Vendor"],
-  ["housing", "Verified Real Estate / Housing Scout"],
-  ["pharmacy", "Pharmacy & Night Provision Kiosk"],
+  ["housing", "House Agents / Property"],
+  ["food", "Food Vendors / Restaurants"],
+  ["gas", "Gas Refill"],
+  ["pos", "POS / Cash Withdrawal"],
 ];
 
 export default function WaitlistForm() {
   const [track, setTrack] = useState("resident");
   const [result, setResult] = useState(null); // null | "Resident" | "Merchant"
 
-  // No backend yet. `data` has every field (incl. multi-checkboxes as an
-  // array for `painpoints`) — wire the real submit here.
-  const submit = (role) => (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const data = Object.fromEntries(fd.entries());
-    data.painpoints = fd.getAll("painpoints");
-    console.log("waitlist form", role, data);
-    e.currentTarget.reset();
-    setResult(role);
-  };
+  useEffect(() => {
+    if (!result) return;
+    const timer = setTimeout(() => setResult(null), 5000);
+    return () => clearTimeout(timer);
+  }, [result]);
 
   return (
-    <div className="flex flex-col gap-8 rounded-3xl bg-white p-6 shadow-sm sm:p-10 lg:col-span-7">
+    <div className="flex flex-col gap-8 rounded-3xl bg-white p-6 shadow-sm sm:p-10 lg:col-span-12">
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-[#14232B]/50">
-          Choose your onboarding track
+          I am a...
         </span>
         <div className="grid grid-cols-2 gap-1 rounded-2xl bg-[#F6F1E6] p-1.5">
           <button
@@ -84,15 +72,15 @@ export default function WaitlistForm() {
             }`}
           >
             <Icon name="storefront" size={20} />
-            <span>Merchant & Agent</span>
+            <span>Business or Agent</span>
           </button>
         </div>
       </div>
 
       {track === "resident" ? (
-        <ResidentForm onSubmit={submit("Resident")} />
+        <ResidentForm onSuccess={() => setResult("Resident")} />
       ) : (
-        <MerchantForm onSubmit={submit("Merchant")} />
+        <MerchantForm onSuccess={() => setResult("Merchant")} />
       )}
 
       {result && (
@@ -105,12 +93,12 @@ export default function WaitlistForm() {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-lg font-bold text-[#14232B]">
-              Queue Position Secured!
+              You're on the list!
             </span>
             <p className="text-base text-[#14232B]/70">
               {result === "Resident"
-                ? "Your Resident Early Access spot for Abeokuta Batch 1 is reserved! Look out for a verification ping on WhatsApp shortly."
-                : "Merchant application received! A City Pulse student corridor steward will visit your stall within 48 hours for verification tag setup."}
+                ? "Thank you for joining. We'll contact you as soon as City Pulse opens in your area."
+                : "Thank you for applying. A City Pulse field team member will contact you to arrange a visit and verify your business."}
             </p>
           </div>
         </div>
@@ -139,16 +127,70 @@ function Field({ label, htmlFor, icon, children }) {
   );
 }
 
-function ResidentForm({ onSubmit }) {
+function ResidentForm({ onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(""), 5000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    data.preferences = fd.getAll("preferences");
+
+    try {
+      const res = await fetch(`${API_BASE}/waitlist/user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: data.name,
+          email: data.email,
+          phone: data.phone,
+          neighborhood: data.neighborhood,
+          preferences: data.preferences,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      form.reset();
+      setSuccess("You're on the waitlist! We'll be in touch soon.");
+      onSuccess();
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-1 pb-2">
         <h2 className="text-2xl font-bold tracking-tight text-[#14232B]">
-          Neighborhood Resident Early Access
+          Early Access for Residents
         </h2>
         <p className="text-base text-[#14232B]/70">
-          Get priority alerts for cash terminals, verified gas refill depot
-          prices, and trusted rentals near your street.
+          See what is available near you right now: a place to stay, food,
+          cooking gas and cash.
         </p>
       </div>
 
@@ -163,12 +205,25 @@ function ResidentForm({ onSubmit }) {
             className={inputBase}
           />
         </Field>
+        <Field label="Email" htmlFor="res-email" icon="mail">
+          <input
+            id="res-email"
+            name="email"
+            required
+            type="email"
+            placeholder="you@example.com"
+            className={inputBase}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label
             htmlFor="res-phone"
             className="text-sm font-semibold text-[#14232B]"
           >
-            WhatsApp Number
+            Mobile Number
           </label>
           <div className={inputWrap}>
             <span className="mr-2 text-sm font-bold text-[#129E9E]">+234</span>
@@ -177,7 +232,26 @@ function ResidentForm({ onSubmit }) {
               name="phone"
               required
               type="tel"
-              pattern="[0-9\s]{9,11}"
+              pattern="[0-9\s]{10,13}"
+              placeholder="801 234 5678"
+              className={inputBase}
+            />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="res-whatsapp"
+            className="text-sm font-semibold text-[#14232B]"
+          >
+            WhatsApp Number (optional)
+          </label>
+          <div className={inputWrap}>
+            <span className="mr-2 text-sm font-bold text-[#129E9E]">+234</span>
+            <input
+              id="res-whatsapp"
+              name="whatsapp"
+              type="tel"
+              pattern="[0-9\s]{10,13}"
               placeholder="801 234 5678"
               className={inputBase}
             />
@@ -186,7 +260,7 @@ function ResidentForm({ onSubmit }) {
       </div>
 
       <Field
-        label="Primary Abeokuta Neighborhood"
+        label="Your Area in Abeokuta"
         htmlFor="res-neighborhood"
         icon="explore"
       >
@@ -210,18 +284,17 @@ function ResidentForm({ onSubmit }) {
 
       <div className="flex flex-col gap-2.5">
         <span className="text-sm font-semibold text-[#14232B]">
-          Everyday Bottlenecks You Want Solved Most (choose all that apply)
+          What do you need most? (choose all that apply)
         </span>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {PAINPOINTS.map(([value, label, checked]) => (
+          {PAINPOINTS.map(([value, label]) => (
             <label
               key={value}
               className="flex items-start gap-3 rounded-2xl bg-[#F6F1E6] p-3.5 transition-colors hover:bg-[#F0EADB]"
             >
               <input
-                defaultChecked={checked}
                 className="mt-1 h-4 w-4 rounded accent-[#129E9E]"
-                name="painpoints"
+                name="preferences"
                 type="checkbox"
                 value={value}
               />
@@ -231,83 +304,133 @@ function ResidentForm({ onSubmit }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-semibold text-[#14232B]">
-          How frequently do you hunt for cash or utility supplies?
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["daily", "Daily", true],
-            ["2-3times", "2–3 times a week", false],
-            ["weekly", "Weekly", false],
-          ].map(([value, label, def]) => (
-            <label
-              key={value}
-              className="cursor-pointer rounded-full bg-[#F6F1E6] px-4 py-2 text-sm font-semibold text-[#14232B] transition-colors hover:bg-[#F0EADB] has-[:checked]:bg-[#129E9E] has-[:checked]:text-[#FAF6EE]"
-            >
-              <input
-                defaultChecked={def}
-                className="sr-only"
-                name="frequency"
-                type="radio"
-                value={value}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
+      {error && (
+        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+          {error}
         </div>
-      </div>
+      )}
+      {success && (
+        <div className="rounded-xl bg-[#E4F3F1] p-3 text-sm text-[#129E9E]">
+          {success}
+        </div>
+      )}
 
       <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-[#F6F1E6] p-3">
         <input
-          defaultChecked
           required
           className="h-4 w-4 rounded accent-[#129E9E]"
           type="checkbox"
           name="consent"
         />
         <span className="text-sm text-[#14232B]/70">
-          Send instant WhatsApp / SMS priority launch link when my street
-          corridor is activated
+          Email me when City Pulse opens in my area
         </span>
       </label>
 
       <button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-4 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F]"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-4 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span>Reserve Resident Early Access</span>
-        <Icon name="arrow_forward" size={20} />
+        {loading ? (
+          <>
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span>Joining...</span>
+          </>
+        ) : (
+          <>
+            <span>Join the Waitlist</span>
+            <Icon name="arrow_forward" size={20} />
+          </>
+        )}
       </button>
       <p className="text-center text-xs text-[#14232B]/50">
-        Zero spam guarantee. Your contact is only used for Abeokuta pilot cohort
-        deployment.
+        We will only use your details to contact you about the City Pulse
+        pilot.
       </p>
     </form>
   );
 }
 
-function MerchantForm({ onSubmit }) {
+function MerchantForm({ onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(""), 5000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+
+    try {
+      const res = await fetch(`${API_BASE}/waitlist/agent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: data.business,
+          email: data.email,
+          serviceType: data.category === "pos" ? "POS / Cash Withdrawal" :
+                     data.category === "gas" ? "Gas Refill" :
+                     data.category === "food" ? "Food Vendors / Restaurants" :
+                     "House Agents / Property",
+          phone: data.phone,
+          whatsappPhone: data.whatsapp || undefined,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      form.reset();
+      setSuccess("Application submitted! Our team will verify and reach out.");
+      onSuccess();
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-1 pb-2">
         <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#129E9E]">
           <Icon name="verified" size={18} />
-          <span>Zero Listing Fees Throughout Pilot Phase</span>
+          <span>Free to Join During the Pilot</span>
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-[#14232B]">
-          Register Your Kiosk, Cash Point, or Store
+          Register Your Business
         </h2>
         <p className="text-base text-[#14232B]/70">
-          Broadcast live availability to nearby residents, cut out idle
-          downtime, and receive an authentic physical City Pulse verification
-          tag.
+          Let people nearby see when you are open and what you have available,
+          and get verified by our field team.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
-          label="Business / Kiosk Name"
+          label="Business Name"
           htmlFor="merch-business"
           icon="store"
         >
@@ -316,12 +439,12 @@ function MerchantForm({ onSubmit }) {
             name="business"
             required
             type="text"
-            placeholder="e.g. Segun & Sons POS Hub"
+            placeholder="e.g. Mama Tola Kitchen"
             className={inputBase}
           />
         </Field>
         <Field
-          label="Operator / Manager Name"
+          label="Owner or Manager Name"
           htmlFor="merch-operator"
           icon="person"
         >
@@ -337,12 +460,22 @@ function MerchantForm({ onSubmit }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Email" htmlFor="merch-email" icon="mail">
+          <input
+            id="merch-email"
+            name="email"
+            required
+            type="email"
+            placeholder="business@example.com"
+            className={inputBase}
+          />
+        </Field>
         <div className="flex flex-col gap-2">
           <label
             htmlFor="merch-phone"
             className="text-sm font-semibold text-[#14232B]"
           >
-            WhatsApp Business Number
+            Mobile Number
           </label>
           <div className={inputWrap}>
             <span className="mr-2 text-sm font-bold text-[#129E9E]">+234</span>
@@ -351,14 +484,36 @@ function MerchantForm({ onSubmit }) {
               name="phone"
               required
               type="tel"
-              pattern="[0-9\s]{9,11}"
+              pattern="[0-9\s]{10,13}"
+              placeholder="803 555 0192"
+              className={inputBase}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="merch-whatsapp"
+            className="text-sm font-semibold text-[#14232B]"
+          >
+            WhatsApp Number (optional)
+          </label>
+          <div className={inputWrap}>
+            <span className="mr-2 text-sm font-bold text-[#129E9E]">+234</span>
+            <input
+              id="merch-whatsapp"
+              name="whatsapp"
+              type="tel"
+              pattern="[0-9\s]{10,13}"
               placeholder="803 555 0192"
               className={inputBase}
             />
           </div>
         </div>
         <Field
-          label="Business Category"
+          label="What Do You Offer?"
           htmlFor="merch-category"
           icon="category"
         >
@@ -382,7 +537,7 @@ function MerchantForm({ onSubmit }) {
       </div>
 
       <Field
-        label="Stall Street Address & Nearest Landmark"
+        label="Address and Nearest Landmark"
         htmlFor="merch-location"
         icon="location_on"
       >
@@ -391,40 +546,10 @@ function MerchantForm({ onSubmit }) {
           name="location"
           required
           type="text"
-          placeholder="e.g. Opposite GTBank Panseke Flyover, beside chemist kiosk"
+          placeholder="e.g. Opposite the market gate, Ibara"
           className={inputBase}
         />
       </Field>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Operating Hours" htmlFor="merch-hours" icon="schedule">
-          <input
-            id="merch-hours"
-            name="hours"
-            required
-            type="text"
-            placeholder="e.g. 7:30 AM – 9:30 PM Daily"
-            className={inputBase}
-          />
-        </Field>
-        <Field
-          label="Preferred Update Method"
-          htmlFor="merch-update-method"
-          icon="phonelink_ring"
-        >
-          <select
-            id="merch-update-method"
-            name="updateMethod"
-            required
-            defaultValue="whatsapp"
-            className={selectBase}
-          >
-            <option value="whatsapp">1-Tap WhatsApp Status Bot</option>
-            <option value="sms">Free Zero-Data SMS Reply</option>
-            <option value="steward">In-Person Student Steward Visit</option>
-          </select>
-        </Field>
-      </div>
 
       <div className="flex items-start gap-3 rounded-2xl bg-[#E4F3F1] p-4">
         <Icon
@@ -434,22 +559,46 @@ function MerchantForm({ onSubmit }) {
         />
         <div className="flex flex-col">
           <span className="text-sm font-bold text-[#14232B]">
-            Physical Verification Walk-In
+            In-Person Verification
           </span>
           <p className="text-sm text-[#14232B]/70">
-            Within 48 hours of onboarding submission, a certified City Pulse
-            student steward in your corridor will visit your spot to drop off a
-            verification sticker and test live ping delivery.
+            After you apply, a City Pulse field team member will visit your
+            business to confirm your details and show you how to update your
+            status.
           </p>
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="rounded-xl bg-[#E4F3F1] p-3 text-sm text-[#129E9E]">
+          {success}
+        </div>
+      )}
+
       <button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-4 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F]"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-6 py-4 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span>Apply for Verified Merchant Onboarding</span>
-        <Icon name="how_to_reg" size={20} />
+        {loading ? (
+          <>
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span>Submitting...</span>
+          </>
+        ) : (
+          <>
+            <span>Join as a Business or Agent</span>
+            <Icon name="how_to_reg" size={20} />
+          </>
+        )}
       </button>
     </form>
   );

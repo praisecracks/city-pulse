@@ -15,8 +15,8 @@ export default function ProductCTABanner() {
             Ready to stop guessing and start knowing?
           </h2>
           <p className="mt-2 text-base text-[#FAF6EE]/80">
-            Join hundreds of residents across Ibara, Panseke, and Camp getting
-            real-time resource certainty delivered right to their screens.
+            Join hundreds of residents across Okemoson and Abeokta South
+            getting real-time resource certainty delivered right to their screens.
           </p>
         </div>
 
@@ -25,12 +25,12 @@ export default function ProductCTABanner() {
               the ScrollToHash effect noted below to actually scroll. */}
           <Link
             to="/waitlist"
-            className="w-full rounded-full bg-white px-8 py-4 text-center text-sm font-semibold text-[#129E9E] shadow-md transition-all hover:bg-[#FAF6EE] sm:w-auto"
+            className="w-full rounded-full bg-white px-8 py-4 text-center text-sm font-semibold text-[#0e7f7f] shadow-md transition-all hover:bg-[#FAF6EE] sm:w-auto"
           >
             Join the Abeokuta Waitlist
           </Link>
           <Link
-            to="/download"
+            to="/about"
             className="w-full rounded-full bg-[#FAF6EE]/15 px-8 py-4 text-center text-sm font-semibold text-[#FAF6EE] transition-all hover:bg-[#FAF6EE]/25 sm:w-auto"
           >
             How to Use City Pulse

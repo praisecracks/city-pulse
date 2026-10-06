@@ -34,9 +34,9 @@ export default function Footer() {
             title="Company"
             items={[
               "Our Mission",
-              "The Builders",
-              "Careers",
-              "Press Kit",
+              // "The Builders",
+              // "Careers",
+              // "Press Kit",
               "Contact Support",
             ]}
           />
@@ -83,13 +83,25 @@ export default function Footer() {
 }
 
 function FooterLinks({ title, items }) {
+  const linkRoutes = {
+    "Neighborhood Radar": "/about#paradigm-shift",
+    "POS Terminal Finder": "/about#four-categories",
+    "Cooking Gas Refill": "/about#four-categories",
+    "Street Eats Tracker": "/about#four-categories",
+    "Merchant Partner App": "/waitlist",
+    "Our Mission": "/about",
+    // "The Builders": "/about",
+    // "Careers": "/contact",
+    // "Press Kit": "/contact",
+    "Contact Support": "/contact",
+  };
   return (
     <div className="flex flex-col gap-3 lg:col-span-2">
       <span className="text-sm font-bold text-[#14232B]">{title}</span>
       {items.map((item) => (
         <Link
           key={item}
-          to="/waitlist"
+          to={linkRoutes[item] || "/"}
           className="text-sm text-[#14232B]/60 transition-colors hover:text-[#129E9E]"
         >
           {item}

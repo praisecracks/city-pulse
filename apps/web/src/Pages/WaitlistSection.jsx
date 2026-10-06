@@ -1,8 +1,6 @@
 import WaitlistHero from "../components/Waitlist/WaitlistHero";
 import WaitlistForm from "../components/Waitlist/WaitlistForm";
-import WaitlistSidebar from "../components/Waitlist/WaitlistSidebar";
 import WaitlistPerks from "../components/Waitlist/WaitlistPerks";
-import WaitlistMapRadar from "../components/Waitlist/WaitlistMapRadar";
 import WaitlistFAQ from "../components/Waitlist/WaitlistFAQ";
 
 // W1 — Home, waitlist region (PRD Section 6). id="waitlist-section" is the
@@ -18,12 +16,10 @@ export default function WaitlistSection() {
         <div className="mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
           <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
             <WaitlistForm />
-            <WaitlistSidebar />
           </div>
         </div>
 
         <WaitlistPerks />
-        <WaitlistMapRadar />
         <WaitlistFAQ />
       </section>
     </>

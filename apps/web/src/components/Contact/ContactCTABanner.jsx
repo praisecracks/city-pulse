@@ -26,12 +26,54 @@ export default function ContactCTABanner() {
           >
             Join Waitlist
           </Link>
-          <Link
-            to="/download"
-            className="w-full rounded-full bg-[#0E7F7F] px-7 py-3.5 text-center text-sm font-semibold text-[#FAF6EE] transition-all hover:bg-[#0E7F7F]/80 sm:w-auto"
+          <button
+            type="button"
+            disabled
+            className="w-full cursor-not-allowed rounded-full bg-[#0E7F7F]/30 px-7 py-3.5 text-center text-sm font-semibold text-[#FAF6EE]/60 sm:w-auto"
           >
-            Download App
-          </Link>
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x="4"
+                  y="10"
+                  width="16"
+                  height="10"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M8 10V6a4 4 0 0 1 8 0v4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="12"
+                  cy="13"
+                  r="2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <line
+                  x1="12"
+                  y1="13"
+                  x2="12"
+                  y2="15"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              Coming Soon
+            </span>
+          </button>
         </div>
       </div>
     </section>

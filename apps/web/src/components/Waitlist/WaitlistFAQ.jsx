@@ -3,19 +3,19 @@ import Icon from "../shared/Icon";
 const FAQS = [
   [
     "When does the Abeokuta pilot launch?",
-    "Initial pilot invitations roll out in Batch 1 for the Panseke and Camp corridors. Registered waitlist members receive early access before the app is publicly indexed on app stores.",
+    "It's already live in Abeokuta. We're rolling out to all of Ogun State next — for residents and merchants alike.",
   ],
   [
     "Is it completely free for everyday residents?",
-    "Yes, 100% free. Checking cash status, finding cooking gas refill rates, and discovering verified rental properties will never cost residents a kobo.",
+    "Yes, 100% free. Finding cash points, gas refills, food spots, and verified housing will never cost you a kobo.",
   ],
   [
-    "How do POS operators and gas depots update their status?",
-    "Merchants can broadcast their status in under 5 seconds with a 1-tap WhatsApp prompt, a free SMS reply, or during scheduled daily check-ins by their designated student corridor steward.",
+    "How do providers update their status?",
+    "Providers update their status directly on their dashboard — one click, instant. No WhatsApp bots, no SMS. Verification is done via email.",
   ],
   [
-    "Can I register multiple business kiosks?",
-    "Yes. Simply complete the Merchant registration form for your main branch, and specify in the landmark field or during the verification phone call that you operate multiple points across Abeokuta.",
+    "Can I register multiple business locations?",
+    "Yes. Register your main branch first, then add additional locations from your dashboard after verification.",
   ],
 ];
 
@@ -24,10 +24,10 @@ export default function WaitlistFAQ() {
     <section className="mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
       <div className="mx-auto mb-10 flex max-w-xl flex-col gap-3 text-center">
         <span className="text-xs font-bold uppercase tracking-wider text-[#129E9E]">
-          Clarifications
+          Questions
         </span>
         <h2 className="font-[Baloo_2] text-3xl font-extrabold tracking-tight text-[#14232B] sm:text-4xl">
-          Pilot Early Access FAQ
+          Frequently Asked Questions
         </h2>
       </div>
 

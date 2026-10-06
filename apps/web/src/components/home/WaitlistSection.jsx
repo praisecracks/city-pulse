@@ -2,19 +2,18 @@ import { useRef, useState } from "react";
 import Icon from "../shared/Icon";
 
 const neighborhoods = [
-  ["panseke", "📍 Panseke"],
-  ["ibara", "📍 Ibara Housing"],
-  ["camp", "📍 FUNAAB / Camp"],
+  ["okemoson", "📍 Okemoson (Secretariat)"],
+  ["ibara", "📍 Ibara"],
   ["adigbe", "📍 Adigbe"],
-  ["kuto", "📍 Kuto Market"],
-  ["other", "📍 Omida"],
+  ["kuto", "📍 Kuto"],
+  ["other", "📍 Other Abeokta South"],
 ];
 
 const inputClass =
   "w-full rounded-xl border border-[#14232B]/15 bg-white px-4 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:border-[#129E9E] focus:outline-none focus:ring-2 focus:ring-[#129E9E]/20";
 
 export default function WaitlistSection() {
-  const [neighborhood, setNeighborhood] = useState("panseke");
+  const [neighborhood, setNeighborhood] = useState("okemoson");
   const [submitted, setSubmitted] = useState(false);
   const selectRef = useRef(null);
 
@@ -43,9 +42,10 @@ export default function WaitlistSection() {
             Be the first to access City Pulse in your neighborhood.
           </h2>
           <p className="text-lg text-[#14232B]/70">
-            We are rolling out street-by-street across Abeokuta: Panseke, Ibara,
-            Camp, Adigbe, Kuto, and Omida. Join your local neighborhood queue to
-            unlock immediate beta privileges.
+            We are rolling out street-by-street across Abeokuta to end the
+            redundancy of wasted trips — because not knowing where to find what
+            you need shouldn't cost you time or transport fare. Join your local
+            neighborhood queue to unlock immediate beta privileges.
           </p>
 
           <div className="flex flex-wrap gap-2 pt-2">
@@ -125,12 +125,11 @@ export default function WaitlistSection() {
                         onChange={(e) => setNeighborhood(e.target.value)}
                         className={`${inputClass} cursor-pointer`}
                       >
-                        <option value="panseke">Panseke / Onikolobo</option>
-                        <option value="ibara">Ibara GRA</option>
-                        <option value="camp">Camp / Alabata (FUNAAB)</option>
+                        <option value="okemoson">Okemoson / Secretariat</option>
+                        <option value="ibara">Ibara</option>
                         <option value="adigbe">Adigbe / Opako</option>
-                        <option value="kuto">Kuto / Isale-Igbein</option>
-                        <option value="other">Other Abeokuta Area</option>
+                        <option value="kuto">Kuto Market</option>
+                        <option value="other">Other Abeokta South Area</option>
                       </select>
                     </Field>
                   </div>

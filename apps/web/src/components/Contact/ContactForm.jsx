@@ -1,87 +1,72 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../shared/Icon";
-import { CONTACT } from "../../data/contact";
 
-const TRACKS = [
-  ["merchant", "Become an Agent / Merchant", "POS, Gas, Bukas, Housing agents"],
-  ["partnerships", "Partnership & Municipalities", "Transit unions, LGA, campus alliances"],
-  ["press", "Press & Media Inquiries", "Interviews, brand assets & stories"],
-  ["careers", "Careers & Field Stewards", "Engineering, product, ground sweeps"],
-  ["general", "General Inquiry & Community Feedback", "Feature ideas, neighborhood bugs, or general feedback"],
-];
-
-const NEIGHBORHOODS = [
-  ["panseke", "Panseke Commercial Spine"],
-  ["ibara", "Ibara / Oke-Ilewo Axis"],
-  ["camp", "Camp / FUNAAB Corridor"],
-  ["adigbe", "Adigbe / Opako Line"],
-  ["kuto", "Kuto Bus Terminal / Market"],
-  ["omida", "Omida Market / Totoro"],
-  ["outside", "Other / Outside Abeokuta"],
-];
+const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
 const inputClass =
   "w-full rounded-lg bg-[#F6F1E6] px-4 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 transition-all focus:bg-white focus:outline-none focus:shadow-[0_0_0_2px_#129E9E]";
 
-export default function ContactForm() {
-  const [track, setTrack] = useState("merchant");
-  const [sent, setSent] = useState(false);
+const WHATSAPP_NUMBER = "2347069991171";
+const WHATSAPP_MESSAGE = encodeURIComponent("Hi, this is for City Pulse.");
 
-  // No backend yet (PRD Section 8: serverless function or form service).
-  // Wire the real submit here — `data` has every field incl. inquiry_track.
-  const submit = (e) => {
+export default function ContactForm() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(""), 5000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  const submit = async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    console.log("contact form", data);
-    e.currentTarget.reset();
-    setTrack("merchant");
-    setSent(true);
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+
+    try {
+      const res = await fetch(`${API_BASE}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      form.reset();
+      setSuccess("Message sent! We'll get back to you shortly.");
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col gap-6 lg:col-span-7">
-      <div className="flex flex-col gap-8 rounded-xl bg-white p-8 shadow-sm sm:p-10">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      {/* Form - takes 2/3 on desktop */}
+      <div className="flex-1 lg:w-2/3 flex flex-col gap-8 rounded-xl bg-white p-8 shadow-sm sm:p-10">
         <div className="flex flex-col gap-2">
           <h2 className="font-[Baloo_2] text-2xl font-bold text-[#14232B]">Send a Direct Message</h2>
           <p className="text-base text-[#14232B]/70">
-            Pick the track that matches your inquiry to reach the right coordinator immediately.
+            We read every message. Tell us what's on your mind.
           </p>
         </div>
 
         <form className="flex flex-col gap-6" onSubmit={submit}>
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#14232B]/60">
-              Select Your Routing Track *
-            </legend>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {TRACKS.map(([value, title, sub], i) => (
-                <label
-                  key={value}
-                  className={`flex cursor-pointer items-start gap-3 rounded-lg p-3.5 text-left transition-all ${
-                    i === TRACKS.length - 1 ? "sm:col-span-2" : ""
-                  } ${
-                    track === value
-                      ? "bg-[#E4F3F1] shadow-[0_0_0_1.5px_rgba(18,158,158,0.5)]"
-                      : "bg-[#F6F1E6] hover:bg-[#F0EADB]"
-                  }`}
-                >
-                  <input
-                    className="mt-1 accent-[#129E9E]"
-                    type="radio"
-                    name="inquiry_track"
-                    value={value}
-                    checked={track === value}
-                    onChange={() => setTrack(value)}
-                  />
-                  <span className="flex flex-col">
-                    <span className="text-sm font-semibold text-[#14232B]">{title}</span>
-                    <span className="text-xs text-[#14232B]/60">{sub}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Full Name *" id="cf-name">
               <input id="cf-name" name="name" required type="text" placeholder="e.g. Bukola Adewale" className={inputClass} />
@@ -92,7 +77,7 @@ export default function ContactForm() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Phone / WhatsApp Number *" id="cf-phone">
+            <Field label="Phone Number *" id="cf-phone">
               <div className="flex items-center overflow-hidden rounded-lg bg-[#F6F1E6] transition-all focus-within:bg-white focus-within:shadow-[0_0_0_2px_#129E9E]">
                 <span className="select-none bg-[#E4F3F1] px-3 py-3 text-sm font-semibold text-[#129E9E]">+234</span>
                 <input
@@ -105,75 +90,114 @@ export default function ContactForm() {
                 />
               </div>
             </Field>
-            <Field label="Neighborhood / Axis *" id="cf-area">
-              <select id="cf-area" name="neighborhood" required defaultValue="" className={`${inputClass} cursor-pointer`}>
-                <option value="" disabled>Select location in Abeokuta</option>
-                {NEIGHBORHOODS.map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+            <Field label="WhatsApp Number (optional)" id="cf-whatsapp">
+              <div className="flex items-center overflow-hidden rounded-lg bg-[#F6F1E6] transition-all focus-within:bg-white focus-within:shadow-[0_0_0_2px_#129E9E]">
+                <span className="select-none bg-[#E4F3F1] px-3 py-3 text-sm font-semibold text-[#129E9E]">+234</span>
+                <input
+                  id="cf-whatsapp"
+                  name="whatsapp"
+                  type="tel"
+                  placeholder="803 123 4567"
+                  className="w-full bg-transparent px-3 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:outline-none"
+                />
+              </div>
             </Field>
           </div>
 
-          <Field label="Message & Business Context *" id="cf-message">
+          <Field label="Neighborhood / Area (optional)" id="cf-area">
+            <input
+              id="cf-area"
+              name="area"
+              type="text"
+              placeholder="e.g. Panseke, Ibara, Camp, or your city"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Message *" id="cf-message">
             <textarea
               id="cf-message"
               name="message"
               required
-              rows={4}
-              placeholder="Tell us about your kiosk, organization, or questions..."
+              rows={5}
+              placeholder="Tell us about your question, feedback, or what you need..."
               className={`${inputClass} resize-none`}
             />
           </Field>
 
-          <label className="flex cursor-pointer select-none items-start gap-3">
-            <input name="updates" defaultChecked type="checkbox" className="mt-1 h-4 w-4 rounded accent-[#129E9E]" />
-            <span className="text-sm text-[#14232B]/60">
-              I would also like to receive pilot launch updates, verification sweep alerts, and priority merchant notices for my ward.
-            </span>
-          </label>
+          {error && (
+            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="rounded-xl bg-[#E4F3F1] p-3 text-sm text-[#129E9E]">
+              {success}
+            </div>
+          )}
 
           <div className="flex flex-col items-center justify-between gap-4 pt-2 sm:flex-row">
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-8 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F] sm:w-auto"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#129E9E] px-8 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-md transition-all hover:bg-[#0E7F7F] disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
             >
-              <span>Submit Inquiry</span>
-              <Icon name="send" size={18} />
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <>
+                  <span>Send Message</span>
+                  <Icon name="send" size={18} />
+                </>
+              )}
             </button>
             <div className="flex items-center gap-1.5 text-xs text-[#14232B]/60">
               <Icon name="lock" size={16} className="text-[#129E9E]" />
-              <span>No spam. Data handled strictly by Abeokuta coordinators.</span>
+              <span>No spam. Your data stays with our team.</span>
             </div>
           </div>
 
-          {sent && (
-            <div role="status" className="flex items-center gap-3 rounded-lg bg-[#E4F3F1] p-4 text-sm text-[#14232B]">
-              <Icon name="check_circle" size={20} className="shrink-0 text-[#129E9E]" />
-              <span>Inquiry received! A neighborhood coordinator will reach out on your phone/WhatsApp within 4 hours.</span>
-            </div>
-          )}
         </form>
       </div>
 
-      <div className="flex items-start gap-4 rounded-xl bg-[#F0EADB] p-5 shadow-sm">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#129E9E]/10 text-[#129E9E]">
-          <Icon name="chat" size={22} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-lg font-bold text-[#14232B]">Urgent Onboarding in Panseke or Camp?</span>
-          <p className="text-sm text-[#14232B]/70">
-            Are you a POS operator or Gas Depot owner needing verification today? Skip email delays and message our field team on WhatsApp for same-day inspection.
+      {/* Contact Info Sidebar - 1/3 on desktop */}
+      <div className="lg:w-1/3 flex-shrink-0">
+        <div className="flex flex-col gap-6 rounded-xl bg-[#F0EADB] p-6 shadow-sm h-fit sticky top-24">
+          <div className="flex items-center gap-3 text-lg font-bold text-[#14232B]">
+            <Icon name="alternate_email" size={24} className="text-[#129E9E]" />
+            <span>Get in Touch</span>
+          </div>
+
+          <div className="flex flex-col gap-4 text-sm text-[#14232B]/70">
+            <a
+              href="mailto:citypulse@gmail.com"
+              className="flex items-center gap-3 font-mono text-[#129E9E] hover:underline transition-colors"
+            >
+              <Icon name="alternate_email" size={20} className="text-[#129E9E] shrink-0" />
+              <span>citypulse@gmail.com</span>
+            </a>
+
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-full bg-[#129E9E] px-4 py-3 text-sm font-semibold text-[#FAF6EE] shadow-sm transition-all hover:bg-[#0E7F7F]"
+            >
+              <Icon name="chat" size={20} className="shrink-0" />
+              <span>Message on WhatsApp</span>
+              <Icon name="arrow_outward" size={16} />
+            </a>
+          </div>
+
+          <p className="pt-4 text-xs text-[#14232B]/50 border-t border-[#14232B]/10">
+            We typically respond within a few hours during business hours.
           </p>
-          <a
-            href={CONTACT.whatsappLink}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 pt-1 text-sm font-semibold text-[#129E9E] hover:underline"
-          >
-            <span>Open WhatsApp Merchant Onboarding Desk</span>
-            <Icon name="arrow_outward" size={16} />
-          </a>
         </div>
       </div>
     </div>

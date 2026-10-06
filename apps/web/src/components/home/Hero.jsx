@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import heroImage from "../../assets/Subtract.png";
 
 const CATEGORIES = [
-  { label: "POS / Cash", icon: "💵" },
   { label: "Food Vendors", icon: "🍲" },
   { label: "Gas Refill", icon: "⛽" },
   { label: "House Agents", icon: "🏠" },
+  { label: "POS / Cash", icon: "💵" },
 ];
 
 export default function Hero() {
@@ -26,9 +26,7 @@ export default function Hero() {
           </h1>
 
           <p className="mt-5 max-w-md text-base leading-relaxed text-[#14232B]/70 sm:text-lg">
-            Cash, fuel, food, or a house to rent — City Pulse shows you who has
-            it available nearby right now, so you stop wasting trips and
-            transport money guessing.
+            City Pulse shows you what is available around you right now, from fresh food and cooking gas to trusted house agents and everyday services, so you stop wasting time and transport fare on trips that end in disappointment.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -36,14 +34,14 @@ export default function Hero() {
               to="/waitlist"
               className="rounded-full bg-[#129E9E] px-7 py-3.5 text-sm font-semibold text-[#FAF6EE] shadow-lg shadow-[#129E9E]/25 transition-colors hover:bg-[#0E7F7F]"
             >
-              {/* Download the app */}
+              {/* Explore the product */}
               Join Waitlist
             </Link>
 
-            <Link
-              to="/"
-              className="text-sm font-semibold text-[#14232B] underline decoration-[#129E9E]/40 decoration-2 underline-offset-4 hover:decoration-[#129E9E]"
-            >
+              <Link
+                to="/about"
+                className="text-sm font-semibold text-[#14232B] underline decoration-[#129E9E]/40 decoration-2 underline-offset-4 hover:decoration-[#129E9E]"
+              >
               See how it works
             </Link>
           </div>

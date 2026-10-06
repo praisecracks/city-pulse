@@ -2,68 +2,60 @@ import Icon from "../shared/Icon";
 
 const VERTICALS = [
   {
-    icon: "point_of_sale",
-    tag: "Financial Liquidity Radar",
-    title: "POS & Cash Terminal Finder",
-    text: 'Locate functioning points of sale with confirmed cash liquidity within a 500m radius. No more walking into booths only to hear "network is fluctuating."',
-    specs: [
-      ["Real-Time Float Indicator:", "High Cash / Low Float", "strong"],
-      ["Terminal Queue Length:", "Under 3 mins wait", "normal"],
-      ["Bank Network Health:", "Zenith & GTBank 98% OK", "strong"],
-    ],
-    avatarText: "₦",
-    footerTitle: "Mummy Toluwa Kiosk — Ibara",
-    footerNote: "Dispensing notes • Updated 4m ago",
-    cta: "Trace Route",
-  },
-  {
-    icon: "local_fire_department",
-    tag: "Household Energy Grid",
-    title: "Cooking Gas Refill Radar",
-    text: "Save your shoulders and transport fare. Verify bulk depot pump status, per-kg price rates, and available canister accessories before lifting your cylinder out the door.",
-    specs: [
-      ["Cylinder Size Ready:", "3kg, 6kg, 12.5kg, 50kg", "normal"],
-      ["Average Current Per-KG:", "₦1,150 / kg", "strong"],
-      ["Depot Power State:", "Electric Pump Active", "strong"],
-    ],
-    avatarIcon: "propane",
-    footerTitle: "Alhaja Standard Gas — Camp Junction",
-    footerNote: "Bulk stock abundant • Dispensing",
-    cta: "Price Check",
+    icon: "real_estate_agent",
+    tag: "Verified Shelter",
+    title: "Verified House & Apartment Agents",
+    status: "live",
+    text: "Avoid fake inspections. Find genuinely vacant self-contains, 2-bedroom flats and student hostels, with agents verified by our field team.",
   },
   {
     icon: "restaurant",
-    tag: "Culinary Pulse",
+    tag: "Food",
     title: "Street Eats & Local Kitchens",
-    text: "Track iconic neighborhood bukas and food cart operations. Know when the morning Akara is hot, when fresh Amala batches drop, and whether evening Suya stands are alight.",
-    specs: [
-      ["Pot Freshness Cycle:", "New Batch Dropped (12m ago)", "strong"],
-      ["Daily Specialties:", "Goat Meat, Gbegiri & Ewedu", "normal"],
-      ["Seating Availability:", "Moderate Rush (8 seats free)", "normal"],
-    ],
-    avatarIcon: "soup_kitchen",
-    footerTitle: "Surulere Amala Spot — Omida",
-    footerNote: "Steaming hot • 20 portions left",
-    cta: "View Menu",
+    status: "live",
+    text: "Know when the morning akara is hot, when fresh amala is ready, and whether the evening suya stand is open, before you trek there.",
   },
   {
-    icon: "real_estate_agent",
-    tag: "Anti-Fraud Shelter",
-    title: "Verified House & Apartment Agents",
-    text: "Eliminate fake inspections. Discover truly vacant self-contains, 2-bedroom flats, and student hostels in Abeokuta, verified by City Pulse coordinators.",
-    specs: [
-      [
-        "Vacancy Verification:",
-        "Key In Hand / Coordinator Inspected",
-        "strong",
-      ],
-      ["Agent Identity:", "NIN Verified • Local Office ID", "normal"],
-      ["Direct Connect:", "Direct Landlord-Rep WhatsApp", "strong"],
-    ],
-    avatarIcon: "apartment",
-    footerTitle: "Modern 2-Bed Unit — Ibara GRA",
-    footerNote: "Vacant • 0 Middleman fees",
-    cta: "Inspect Direct",
+    icon: "local_fire_department",
+    tag: "Cooking Gas",
+    title: "Cooking Gas Refill Finder",
+    status: "live",
+    text: "See which sellers have gas in stock, with prices and cylinder sizes, before you carry your cylinder out the door.",
+  },
+  {
+    icon: "point_of_sale",
+    tag: "Cash",
+    title: "POS & Cash Point Finder",
+    status: "live",
+    text: "Find a POS point near you that is open and has the cash you need. No more walking to a stand only to hear 'network is fluctuating.'",
+  },
+  {
+    icon: "local_gas_station",
+    tag: "Fuel",
+    title: "Petrol Station Finder",
+    status: "coming",
+    text: "Check which stations have fuel before you join the queue, so you spend less time waiting and less money driving around.",
+  },
+  {
+    icon: "local_pharmacy",
+    tag: "Health",
+    title: "Pharmacy & Chemist Finder",
+    status: "coming",
+    text: "Don't risk an empty pharmacy when you need medicine. See which chemists have what you need in stock before you go.",
+  },
+  {
+    icon: "shopping_cart",
+    tag: "Groceries",
+    title: "Supermarkets & Provisions",
+    status: "coming",
+    text: "Setting up a new home? See which shops have the groceries and household items you need before you make the trip.",
+  },
+  {
+    icon: "print",
+    tag: "Printing",
+    title: "Printing Shops & Cyber Cafes",
+    status: "coming",
+    text: "Find a printing shop or cyber cafe that is open and has power, for forms, assignments and important documents.",
   },
 ];
 
@@ -76,87 +68,42 @@ export default function CategoriesDeepDive() {
       <div className="mx-auto max-w-[1240px] px-6 lg:px-8">
         <div className="mb-14 max-w-2xl">
           <span className="text-xs font-bold uppercase tracking-wider text-[#129E9E]">
-            Engineered for Daily Survival
+            What You Can Find
           </span>
           <h2 className="mt-2 font-[Baloo_2] text-3xl font-bold tracking-tight text-[#14232B] sm:text-4xl">
-            The 4 MVP Categories: Deep Dive
+            Everyday Services That Actually Matter
           </h2>
           <p className="mt-2 text-base text-[#14232B]/70">
-            We refused to launch 50 generic listing categories that gather dust.
-            Instead, we solved the four everyday resource crises in Abeokuta
-            with extreme operational precision.
+            Not every shop has what you need when you need it. These are the
+            everyday needs City Pulse starts with, and the services we are
+            adding next.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {VERTICALS.map((v) => (
             <div
               key={v.title}
-              className="flex flex-col justify-between rounded-xl bg-white p-8 shadow-sm"
+              className="flex flex-col rounded-xl bg-white p-6 shadow-sm"
             >
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#129E9E]/10 text-[#129E9E]">
-                    <Icon name={v.icon} size={28} />
-                  </div>
-                  <span className="rounded-full bg-[#F6F1E6] px-3 py-1 text-xs font-semibold text-[#129E9E]">
-                    {v.tag}
-                  </span>
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#129E9E]/10 text-[#129E9E]">
+                  <Icon name={v.icon} size={24} />
                 </div>
-                <h3 className="mt-6 text-2xl font-bold text-[#14232B]">
-                  {v.title}
-                </h3>
-                <p className="mt-2 text-base text-[#14232B]/70">{v.text}</p>
-
-                <div className="mt-6 space-y-3 rounded-lg bg-[#F6F1E6] p-4">
-                  {v.specs.map(([label, value, weight]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between text-sm text-[#14232B]"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-[#129E9E]" />
-                        {label}
-                      </span>
-                      <span
-                        className={
-                          weight === "strong"
-                            ? "font-bold text-[#129E9E]"
-                            : "text-[#14232B]/70"
-                        }
-                      >
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 flex items-center justify-between pt-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#129E9E] text-xs font-bold text-[#FAF6EE]">
-                    {v.avatarIcon ? (
-                      <Icon name={v.avatarIcon} size={16} />
-                    ) : (
-                      v.avatarText
-                    )}
-                  </div>
-                  <div>
-                    <span className="block text-xs font-semibold text-[#14232B]">
-                      {v.footerTitle}
-                    </span>
-                    <span className="text-xs text-[#129E9E]">
-                      {v.footerNote}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-full bg-[#129E9E]/10 px-4 py-2 text-xs font-semibold text-[#129E9E] transition-colors hover:bg-[#129E9E]/20"
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    v.status === "live"
+                      ? "bg-[#E4F3F1] text-[#129E9E]"
+                      : "bg-[#F5E3E0] text-[#B5453B]"
+                  }`}
                 >
-                  {v.cta}
-                </button>
+                  {v.status === "live" ? "At Launch" : "Coming Soon"}
+                </span>
               </div>
+              <h3 className="mt-4 text-lg font-bold text-[#14232B]">
+                {v.title}
+              </h3>
+              <p className="mt-1 text-sm text-[#14232B]/70">{v.text}</p>
             </div>
           ))}
         </div>
