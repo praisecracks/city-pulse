@@ -2,6 +2,7 @@ require("dotenv").config();
 const app = require("./app");
 const connectDB = require("./config/db");
 const { applyFreshnessRule } = require("./services/freshnessService");
+const { ensureAdminCreds } = require("./controllers/adminAuth.controller");
 
 const PORT = process.env.PORT || 5000;
 
@@ -62,6 +63,7 @@ scheduleFreshness();
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`City Pulse backend running on port ${PORT}`);
   console.log(`Server listening on: http://0.0.0.0:${PORT}`);
+  ensureAdminCreds();
 });
 
 server.on("error", (err) => {
