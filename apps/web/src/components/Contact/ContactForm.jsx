@@ -176,11 +176,11 @@ export default function ContactForm() {
 
           <div className="flex flex-col gap-4 text-sm text-[#14232B]/70">
             <a
-              href="mailto:citypulse@gmail.com"
+              href="mailto:contact.citypulse@gmail.com"
               className="flex items-center gap-3 font-mono text-[#129E9E] hover:underline transition-colors"
             >
               <Icon name="alternate_email" size={20} className="text-[#129E9E] shrink-0" />
-              <span>citypulse@gmail.com</span>
+              <span>contact.citypulse@gmail.com</span>
             </a>
 
             <a

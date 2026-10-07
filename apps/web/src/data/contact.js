@@ -5,7 +5,7 @@ export const CONTACT = {
   whatsappDisplay: "0706 999 1171",
   whatsappHours: "Mon – Sat: 7:00 AM – 7:00 PM WAT",
   emails: {
-    general: "citypulse@gmail.com",
+    general: "contact.citypulse@gmail.com",
   },
   address:
     "14 Lalubu Commercial Corridor, Opposite Cultural Centre, Oke-Ilewo, Abeokuta, Ogun State, Nigeria",

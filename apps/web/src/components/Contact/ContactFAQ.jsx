@@ -11,7 +11,7 @@ const FAQS = [
   ],
   [
     "Can journalists or tech writers test the mobile app before public launch?",
-    "Yes. Email citypulse@gmail.com with your publication and what you need, and we'll share access and assets.",
+    "Yes. Email contact.citypulse@gmail.com with your publication and what you need, and we'll share access and assets.",
   ],
   [
     "When is City Pulse expanding outside of Abeokuta?",
