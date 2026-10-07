@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "../shared/Icon";
+import { trackEvent } from "../../utils/analytics";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
@@ -133,6 +134,10 @@ function ResidentForm({ onSuccess }) {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    trackEvent("form_start", { form: "waitlist_user" });
+  }, []);
+
+  useEffect(() => {
     if (!success) return;
     const timer = setTimeout(() => setSuccess(""), 5000);
     return () => clearTimeout(timer);
@@ -168,6 +173,7 @@ function ResidentForm({ onSuccess }) {
         throw new Error(result.message || "Something went wrong");
       }
 
+      trackEvent("form_submit", { form: "waitlist_user" });
       form.reset();
       setSuccess("You're on the waitlist! We'll be in touch soon.");
       onSuccess();
@@ -361,6 +367,10 @@ function MerchantForm({ onSuccess }) {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    trackEvent("form_start", { form: "waitlist_agent" });
+  }, []);
+
+  useEffect(() => {
     if (!success) return;
     const timer = setTimeout(() => setSuccess(""), 5000);
     return () => clearTimeout(timer);
@@ -398,6 +408,7 @@ function MerchantForm({ onSuccess }) {
         throw new Error(result.message || "Something went wrong");
       }
 
+      trackEvent("form_submit", { form: "waitlist_agent" });
       form.reset();
       setSuccess("Application submitted! Our team will verify and reach out.");
       onSuccess();

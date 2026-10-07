@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../shared/Icon";
+import { trackEvent } from "../../utils/analytics";
 
 const inputClass =
   "w-full rounded-xl border border-[#14232B]/15 bg-white px-4 py-3 text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:border-[#129E9E] focus:outline-none focus:ring-2 focus:ring-[#129E9E]/20";
@@ -11,6 +12,10 @@ export default function MerchantModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (open) trackEvent("form_start", { form: "merchant_modal" });
+  }, [open]);
 
   if (!open) return null;
 
@@ -29,6 +34,7 @@ export default function MerchantModal({ open, onClose }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    trackEvent("form_submit", { form: "merchant_modal" });
     setLoading(true);
     setError(null);
 
