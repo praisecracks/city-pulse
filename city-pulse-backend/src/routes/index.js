@@ -17,6 +17,6 @@ router.use("/notifications", notificationRoutes);
 router.use("/waitlist", waitlistRoutes);
 router.use("/contact", contactRoutes);
 router.use("/analytics", analyticsRoutes);
-router.use("/admin-Pulse", adminRoutes);
+router.use("/admin-pulse", adminRoutes);
 
 module.exports = router;
