@@ -48,6 +48,35 @@ export default function Icon({ name, size = 18, className = "", strokeWidth = 1.
           <circle cx="10" cy="12" r="2" fill="currentColor" />
         </svg>
       );
+    case "warning":
+      return (
+        <svg {...props}>
+          <path d="M12 9v4m0 4h.01M12 21a9 9 0 100-18 9 9 0 000 18z" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "palette":
+      return (
+        <svg {...props}>
+          <path d="M12 3a6 6 0 000 12H6a6 6 0 010-12h6z" stroke="currentColor" strokeWidth={s} strokeLinejoin="round" />
+          <circle cx="18" cy="18" r="3" stroke="currentColor" strokeWidth={s} />
+          <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth={s} />
+          <circle cx="18" cy="6" r="3" stroke="currentColor" strokeWidth={s} />
+        </svg>
+      );
+    case "calendar_today":
+      return (
+        <svg {...props}>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth={s} />
+          <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "edit":
+      return (
+        <svg {...props}>
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     case "check_circle":
       return (
         <svg {...props}>
@@ -460,6 +489,135 @@ export default function Icon({ name, size = 18, className = "", strokeWidth = 1.
       return (
         <svg {...props}>
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "visibility":
+      return (
+        <svg {...props}>
+          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z" stroke="currentColor" strokeWidth={s} />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={s} />
+        </svg>
+      );
+    case "visibility_off":
+      return (
+        <svg {...props}>
+          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-3-11-7.5a10.07 10.07 0 013.58-5.68" stroke="currentColor" strokeWidth={s} />
+          <path d="M1 1l22 22" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={s} />
+        </svg>
+      );
+    case "logout":
+      return (
+        <svg {...props}>
+          <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "menu":
+      return (
+        <svg {...props}>
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "close":
+      return (
+        <svg {...props}>
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "home":
+      return (
+        <svg {...props}>
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "assignment":
+      return (
+        <svg {...props}>
+          <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "bar_chart":
+      return (
+        <svg {...props}>
+          <path d="M3 3v18h18" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+          <path d="M7 16v4M14 12v8M21 8v12" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "settings":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={s} />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "refresh":
+      return (
+        <svg {...props}>
+          <path d="M4 4v5h5M4 4l2.5 2.5M20 20v-5h-5M20 20l-2.5-2.5" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "table_chart":
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth={s} />
+          <path d="M3 9h18M9 3v18" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "picture_as_pdf":
+      return (
+        <svg {...props}>
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M14 2v6h6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+          <path d="M16 13h-6M16 17h-6M10 9h6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "schedule":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={s} />
+          <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "person_add":
+      return (
+        <svg {...props}>
+          <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="8.5" cy="7" r="2.5" stroke="currentColor" strokeWidth={s} />
+          <path d="M20 8h-3M20 8v3" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+        </svg>
+      );
+    case "expand_more":
+      return (
+        <svg {...props}>
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "expand_less":
+      return (
+        <svg {...props}>
+          <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "chevron_right":
+      return (
+        <svg {...props}>
+          <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "chevron_left":
+      return (
+        <svg {...props}>
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth={s} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "notifications_active":
+      return (
+        <svg {...props}>
+          <path d="M6 8a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5h-15S6 12 6 8z" stroke="currentColor" strokeWidth={s} strokeLinejoin="round" />
+          <path d="M10 17.5a2 2 0 004 0" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
+          <path d="M4 4l1.5 1.5M20 4l-1.5 1.5" stroke="currentColor" strokeWidth={s} strokeLinecap="round" />
         </svg>
       );
     default:

@@ -13,17 +13,17 @@ const NavBar = () => {
 
   const linkClass = ({ isActive }) =>
     `transition-opacity hover:opacity-70 ${
-      isActive ? "font-semibold text-[#08a890]" : "text-black"
+      isActive ? "font-semibold text-white" : "text-white/80 hover:text-white"
     }`;
 
   const mobileLinkClass = ({ isActive }) =>
     `transition-opacity hover:opacity-70 ${
-      isActive ? "font-semibold text-[#08a890]" : "text-black"
+      isActive ? "font-semibold text-white" : "text-white/80 hover:text-white"
     }`;
 
   return (
-    <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-gray-200 bg-white px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
-      <div className="mx-auto flex min-h-10 max-w-[2048px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
+    <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-[#129E9E]/30 bg-[#129E9E] px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
+      <div className="mx-auto flex min-h-10 max-w-[1240px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
         <NavLink to="/" className="flex shrink-0 items-center">
           <img
             src={Logo}
@@ -32,7 +32,7 @@ const NavBar = () => {
           />
         </NavLink>
 
-        <div className="hidden items-center text-sm text-black md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
+        <div className="hidden items-center text-sm text-white md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -49,7 +49,7 @@ const NavBar = () => {
           to="/contact"
           className={({ isActive }) =>
             `hidden rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors md:block lg:px-5 lg:text-[16px] ${
-              isActive ? "bg-[#078f7b]" : "bg-[#08a890] hover:bg-[#078f7b]"
+              isActive ? "bg-[#078f7b]" : "bg-[#0E7F7F] hover:bg-[#078f7b]"
             }`
           }
         >
@@ -59,7 +59,7 @@ const NavBar = () => {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#08a890] text-white md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0E7F7F] text-white md:hidden"
           aria-label="Toggle navigation menu"
           aria-expanded={isOpen}
         >
@@ -98,7 +98,7 @@ const NavBar = () => {
       </div>
 
       {isOpen && (
-        <div className="absolute top-[calc(100%+10px)] left-0 w-full rounded-3xl border border-gray-200 bg-white p-5 shadow-lg md:hidden">
+        <div className="absolute top-[calc(100%+10px)] left-0 w-full rounded-3xl border border-[#129E9E]/30 bg-[#129E9E] p-5 shadow-lg md:hidden">
           <div className="flex flex-col gap-4 text-[15px]">
             {navLinks.map((link) => (
               <NavLink
@@ -115,7 +115,7 @@ const NavBar = () => {
             <NavLink
               to="/contact"
               onClick={() => setIsOpen(false)}
-              className="mt-1 w-full rounded-full bg-[#08a890] px-5 py-2.5 text-center font-semibold text-white transition-colors hover:bg-[#078f7b]"
+              className="mt-1 w-full rounded-full bg-[#0E7F7F] px-5 py-2.5 text-center font-semibold text-white transition-colors hover:bg-[#078f7b]"
             >
               Contact Us
             </NavLink>

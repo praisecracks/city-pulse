@@ -5,10 +5,10 @@ import { trackEvent } from "../../utils/analytics";
 const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
 const inputWrap =
-  "flex items-center rounded-2xl bg-[#F6F1E6] px-4 py-3 transition-all focus-within:bg-white focus-within:shadow-[0_0_0_2px_#129E9E]";
+  "flex w-full min-w-0 overflow-hidden items-center rounded-2xl bg-[#F6F1E6] px-4 py-3 transition-all focus-within:bg-white focus-within:shadow-[0_0_0_2px_#129E9E]";
 const inputBase =
-  "w-full bg-transparent text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:outline-none";
-const selectBase = `${inputBase} cursor-pointer appearance-none`;
+  "min-w-0 w-full bg-transparent text-sm text-[#14232B] placeholder:text-[#14232B]/40 focus:outline-none";
+const selectBase = `${inputBase} cursor-pointer appearance-none truncate`;
 
 const PAINPOINTS = [
   ["housing", "House Agents / Property"],
@@ -43,7 +43,7 @@ export default function WaitlistForm() {
   }, [result]);
 
   return (
-    <div className="flex flex-col gap-8 rounded-3xl bg-white p-6 shadow-sm sm:p-10 lg:col-span-12">
+    <div className="min-w-0 flex flex-col gap-8 rounded-3xl bg-white p-6 shadow-sm sm:p-10 lg:col-span-12">
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-[#14232B]/50">
           I am a...
@@ -321,7 +321,7 @@ function ResidentForm({ onSuccess }) {
         </div>
       )}
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-[#F6F1E6] p-3">
+      <label className="min-w-0 flex cursor-pointer items-center gap-3 rounded-2xl bg-[#F6F1E6] p-3">
         <input
           required
           className="h-4 w-4 rounded accent-[#129E9E]"
@@ -562,7 +562,7 @@ function MerchantForm({ onSuccess }) {
         />
       </Field>
 
-      <div className="flex items-start gap-3 rounded-2xl bg-[#E4F3F1] p-4">
+      <div className="min-w-0 flex items-start gap-3 rounded-2xl bg-[#E4F3F1] p-4">
         <Icon
           name="verified_user"
           size={22}

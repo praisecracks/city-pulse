@@ -17,8 +17,8 @@ const TICKER = [
 
 export default function WaitlistHero() {
   return (
-    <section className="relative mx-auto w-full max-w-[1240px] px-6 pb-12 pt-10 lg:px-8 lg:pt-14">
-      <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[340px] w-[720px] -translate-x-1/2 rounded-full bg-[#129E9E]/10 blur-3xl" />
+    <section className="min-w-0 relative mx-auto w-full max-w-[1240px] px-6 pb-12 pt-10 lg:px-8 lg:pt-14">
+      <div className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-[340px] w-full max-w-[720px] -translate-x-1/2 rounded-full bg-[#129E9E]/10 blur-3xl" />
 
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#129E9E] px-4 py-1.5 text-xs font-semibold text-white shadow-sm">
@@ -40,7 +40,7 @@ export default function WaitlistHero() {
           {TICKER.map((t) => (
             <div
               key={t.label}
-              className="inline-flex items-center gap-2 rounded-full bg-[#E9E2D0] px-3.5 py-1.5 text-xs text-[#14232B]"
+              className="min-w-0 inline-flex items-center gap-2 rounded-full bg-[#E9E2D0] px-3.5 py-1.5 text-xs text-[#14232B]"
             >
               <Icon name={t.icon} size={16} className="text-[#129E9E]" />
               <span className="font-bold">{t.label}</span>

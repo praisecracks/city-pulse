@@ -13,7 +13,7 @@ export default function WaitlistSection() {
       <section id="waitlist-section" className="w-full bg-[#F6F1E6]">
         <WaitlistHero />
 
-        <div className="mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
+        <div className="min-w-0 mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
           <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
             <WaitlistForm />
           </div>

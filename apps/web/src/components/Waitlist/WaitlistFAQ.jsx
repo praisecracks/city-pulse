@@ -21,7 +21,7 @@ const FAQS = [
 
 export default function WaitlistFAQ() {
   return (
-    <section className="mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
+    <section className="min-w-0 mx-auto w-full max-w-[1240px] px-6 pb-20 lg:px-8">
       <div className="mx-auto mb-10 flex max-w-xl flex-col gap-3 text-center">
         <span className="text-xs font-bold uppercase tracking-wider text-[#129E9E]">
           Questions

@@ -10,7 +10,7 @@ export default function AdminRoute() {
   const { token, isAdmin } = useAuth();
 
   if (!token) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/admin-Pulse/login" replace />;
   }
   if (!isAdmin) {
     return <Navigate to="/" replace />;
