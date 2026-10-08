@@ -77,7 +77,7 @@ export default function AdminContacts() {
     setUpdating(id);
     try {
       const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
-      const res = await fetch(`${API_BASE}/admin-Pulse/contact/${id}`, {
+      const res = await fetch(`${API_BASE}/admin-pulse/contact/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

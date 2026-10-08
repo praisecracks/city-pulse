@@ -15,7 +15,7 @@ export default function AdminLogin() {
 
   // Already logged in — go straight to the dashboard.
   if (token) {
-    return <Navigate to="/admin-Pulse" replace />;
+    return <Navigate to="/admin-pulse" replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -25,7 +25,7 @@ export default function AdminLogin() {
     try {
       const res = await adminApi.login(email, password);
       login(res.data.token);
-      navigate("/admin-Pulse");
+      navigate("/admin-pulse");
     } catch (err) {
       setError(err.message);
     } finally {

@@ -8,7 +8,7 @@ const NAV_SECTIONS = [
     label: "Overview",
     items: [
       {
-        to: "/admin-Pulse",
+        to: "/admin-pulse",
         label: "Dashboard",
         icon: "home",
         badge: null,
@@ -19,19 +19,19 @@ const NAV_SECTIONS = [
     label: "Management",
     items: [
       {
-        to: "/admin-Pulse/waitlist",
+        to: "/admin-pulse/waitlist",
         label: "Waitlist",
         icon: "assignment",
         badge: null,
       },
       {
-        to: "/admin-Pulse/contacts",
+        to: "/admin-pulse/contacts",
         label: "Contacts",
         icon: "chat",
         badge: null,
       },
       {
-        to: "/admin-Pulse/users",
+        to: "/admin-pulse/users",
         label: "Users",
         icon: "groups",
         badge: null,
@@ -42,7 +42,7 @@ const NAV_SECTIONS = [
     label: "System",
     items: [
       {
-        to: "/admin-Pulse/analytics",
+        to: "/admin-pulse/analytics",
         label: "Analytics",
         icon: "bar_chart",
         badge: null,
@@ -145,7 +145,7 @@ export default function AdminSidebar({
               {section.items.map((item) => {
                 const isActive =
                   currentPath === item.to ||
-                  (item.to !== "/admin-Pulse" &&
+                  (item.to !== "/admin-pulse" &&
                     currentPath.startsWith(item.to + "/"));
 
                 return (

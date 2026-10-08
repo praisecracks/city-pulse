@@ -12,10 +12,10 @@ const STATUS_BADGES = {
 };
 
 const QUICK_ACTIONS = [
-  { label: "View Waitlist", href: "/admin-Pulse/waitlist", icon: "assignment", color: "bg-[#E4F3F1] text-[#129E9E]" },
-  { label: "Check Contacts", href: "/admin-Pulse/contacts", icon: "chat", color: "bg-[#F5E3E0] text-[#B5453B]" },
-  { label: "Manage Users", href: "/admin-Pulse/users", icon: "groups", color: "bg-[#F0EADB] text-[#14232B]" },
-  { label: "Analytics", href: "/admin-Pulse/analytics", icon: "bar_chart", color: "bg-[#E4F3F1] text-[#0E7F7F]" },
+  { label: "View Waitlist", href: "/admin-pulse/waitlist", icon: "assignment", color: "bg-[#E4F3F1] text-[#129E9E]" },
+  { label: "Check Contacts", href: "/admin-pulse/contacts", icon: "chat", color: "bg-[#F5E3E0] text-[#B5453B]" },
+  { label: "Manage Users", href: "/admin-pulse/users", icon: "groups", color: "bg-[#F0EADB] text-[#14232B]" },
+  { label: "Analytics", href: "/admin-pulse/analytics", icon: "bar_chart", color: "bg-[#E4F3F1] text-[#0E7F7F]" },
 ];
 
 const SAMPLE_TIMELINE = Array.from({ length: 30 }, (_, i) => {
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
               title="Recent Contacts"
               subtitle="Latest messages from users"
               action={
-                <a href="/admin-Pulse/contacts" className="text-sm text-[#129E9E] font-medium hover:underline">
+                <a href="/admin-pulse/contacts" className="text-sm text-[#129E9E] font-medium hover:underline">
                   View all
                 </a>
               }
@@ -369,7 +369,7 @@ export default function AdminDashboard() {
               title="Recent Signups"
               subtitle="New waitlist registrations"
               action={
-                <a href="/admin-Pulse/waitlist" className="text-sm text-[#129E9E] font-medium hover:underline">
+                <a href="/admin-pulse/waitlist" className="text-sm text-[#129E9E] font-medium hover:underline">
                   View all
                 </a>
               }

@@ -9,21 +9,21 @@ const NAV_SECTIONS = [
   {
     label: "Overview",
     items: [
-      { to: "/admin-Pulse", label: "Dashboard", icon: "home", badge: null },
+      { to: "/admin-pulse", label: "Dashboard", icon: "home", badge: null },
     ],
   },
   {
     label: "Management",
     items: [
-      { to: "/admin-Pulse/waitlist", label: "Waitlist", icon: "assignment", badge: null },
-      { to: "/admin-Pulse/contacts", label: "Contacts", icon: "chat", badge: null },
-      { to: "/admin-Pulse/users", label: "Users", icon: "groups", badge: null },
+      { to: "/admin-pulse/waitlist", label: "Waitlist", icon: "assignment", badge: null },
+      { to: "/admin-pulse/contacts", label: "Contacts", icon: "chat", badge: null },
+      { to: "/admin-pulse/users", label: "Users", icon: "groups", badge: null },
     ],
   },
   {
     label: "System",
     items: [
-      { to: "/admin-Pulse/analytics", label: "Analytics", icon: "bar_chart", badge: null },
+      { to: "/admin-pulse/analytics", label: "Analytics", icon: "bar_chart", badge: null },
     ],
   },
 ];
@@ -48,7 +48,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     logout();
-    navigate("/admin-Pulse/login");
+    navigate("/admin-pulse/login");
   };
 
   const currentPath = location.pathname;
@@ -111,7 +111,7 @@ export default function AdminLayout() {
             <div className="flex items-center justify-between h-16 px-6">
               <div className="flex items-center gap-4">
                 <h1 className="font-[Baloo_2] text-xl font-bold text-[#14232B]">
-                  {currentPath === "/admin-Pulse" ? "Dashboard" : currentPath.split("/").pop()?.replace(/-/g, " ") || "Dashboard"}
+                  {currentPath === "/admin-pulse" ? "Dashboard" : currentPath.split("/").pop()?.replace(/-/g, " ") || "Dashboard"}
                 </h1>
               </div>
               <div className="flex items-center gap-3">

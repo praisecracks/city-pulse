@@ -27,17 +27,17 @@ export const router = createBrowserRouter([
   },
   {
     element: <AdminLogin />,
-    path: "/admin-Pulse/login",
+    path: "/admin-pulse/login",
   },
   {
     element: <AdminRoute />,
     children: [
       { element: <AdminLayout />, children: [
-        { path: "/admin-Pulse", element: <AdminDashboard /> },
-        { path: "/admin-Pulse/waitlist", element: <AdminWaitlist /> },
-        { path: "/admin-Pulse/contacts", element: <AdminContacts /> },
-        { path: "/admin-Pulse/users", element: <AdminUsers /> },
-        { path: "/admin-Pulse/analytics", element: <AdminAnalytics /> },
+        { path: "/admin-pulse", element: <AdminDashboard /> },
+        { path: "/admin-pulse/waitlist", element: <AdminWaitlist /> },
+        { path: "/admin-pulse/contacts", element: <AdminContacts /> },
+        { path: "/admin-pulse/users", element: <AdminUsers /> },
+        { path: "/admin-pulse/analytics", element: <AdminAnalytics /> },
       ]},
     ],
   },

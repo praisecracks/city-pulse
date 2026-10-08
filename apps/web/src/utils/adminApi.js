@@ -21,20 +21,20 @@ async function request(path, { token, ...opts } = {}) {
 
 export const adminApi = {
   login: (email, password) =>
-    request("/admin-Pulse/login", {
+    request("/admin-pulse/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
-  summary: (token) => request("/admin-Pulse/analytics/summary", { token }),
+  summary: (token) => request("/admin-pulse/analytics/summary", { token }),
   timeline: (token, days = 30) =>
-    request(`/admin-Pulse/analytics/timeline?days=${days}`, { token }),
+    request(`/admin-pulse/analytics/timeline?days=${days}`, { token }),
   waitlist: (token, page = 1, limit = 50) =>
-    request(`/admin-Pulse/waitlist?page=${page}&limit=${limit}`, { token }),
+    request(`/admin-pulse/waitlist?page=${page}&limit=${limit}`, { token }),
   contacts: (token, page = 1, limit = 50) =>
-    request(`/admin-Pulse/contacts?page=${page}&limit=${limit}`, { token }),
+    request(`/admin-pulse/contacts?page=${page}&limit=${limit}`, { token }),
   users: (token, page = 1, limit = 50) =>
-    request(`/admin-Pulse/users?page=${page}&limit=${limit}`, { token }),
+    request(`/admin-pulse/users?page=${page}&limit=${limit}`, { token }),
 };
 
 export default adminApi;
