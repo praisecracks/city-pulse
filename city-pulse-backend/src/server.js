@@ -1,10 +1,31 @@
 require("dotenv").config();
+const net = require("net");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { applyFreshnessRule } = require("./services/freshnessService");
 const { ensureAdminCreds } = require("./controllers/adminAuth.controller");
 
-const PORT = process.env.PORT || 5000;
+const DEFAULT_PORT = Number(process.env.PORT) || 5002;
+
+function getAvailablePort(startPort, maxTries = 20) {
+  return new Promise((resolve, reject) => {
+    const tryPort = (port, triesLeft) => {
+      const tester = net.createServer();
+      tester.once("error", (err) => {
+        if (err.code === "EADDRINUSE" && triesLeft > 0) {
+          return tryPort(port + 1, triesLeft - 1);
+        }
+        reject(err);
+      });
+      tester.once("listening", () => {
+        tester.close(() => resolve(port));
+      });
+      tester.listen(port, "0.0.0.0");
+    };
+
+    tryPort(startPort, maxTries);
+  });
+}
 
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled Rejection:", err);
@@ -60,18 +81,26 @@ function scheduleFreshness() {
 
 scheduleFreshness();
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`City Pulse backend running on port ${PORT}`);
-  console.log(`Server listening on: http://0.0.0.0:${PORT}`);
-  ensureAdminCreds();
-});
+(async () => {
+  try {
+    const port = await getAvailablePort(DEFAULT_PORT);
+    const server = app.listen(port, "0.0.0.0", () => {
+      console.log(`City Pulse backend running on port ${port}`);
+      console.log(`Server listening on: http://0.0.0.0:${port}`);
+      ensureAdminCreds();
+    });
 
-server.on("error", (err) => {
-  console.error("Server error:", err);
-  process.exit(1);
-});
+    server.on("error", (err) => {
+      console.error("Server error:", err);
+      process.exit(1);
+    });
 
-server.on("listening", () => {
-  const addr = server.address();
-  console.log("Server address:", addr);
-});
+    server.on("listening", () => {
+      const addr = server.address();
+      console.log("Server address:", addr);
+    });
+  } catch (err) {
+    console.error("Unable to start the backend because no free port was found:", err.message);
+    process.exit(1);
+  }
+})();
