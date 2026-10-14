@@ -49,6 +49,12 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: 6,
+      select: false,
+    },
     otpVerified: {
       type: Boolean,
       default: false,
@@ -93,6 +99,8 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
     // Business profile visibility: 'public' or 'private'
     // When private, the business profile is hidden from other users
     businessProfileVisibility: {

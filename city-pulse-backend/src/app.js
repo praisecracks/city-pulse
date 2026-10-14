@@ -10,6 +10,8 @@ const { UPLOAD_DIR, PUBLIC_MOUNT, ensureUploadDir } = require("./config/uploads"
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 ensureUploadDir();
 
 // --- Core middlewares ---

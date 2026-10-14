@@ -9,9 +9,11 @@ const {
   updatePulse,
   updatePulseStatus,
   deletePulse,
+  getNearbyPulses,
 } = require("../controllers/pulse.controller");
 const { createReport, getReportsForPulse } = require("../controllers/report.controller");
 
+router.route("/nearby").get(getNearbyPulses);
 router.route("/").get(getPulses).post(auth, createPulse);
 
 // Must be declared before "/:id" below. Express matches in registration order,

@@ -57,6 +57,24 @@ const pulseSchema = new mongoose.Schema(
       accuracy: { type: Number },
       source: { type: String, enum: ["gps", "manual"], default: "manual" },
     },
+    locationPoint: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        validate: {
+          validator: function (v) {
+            return !v || (Array.isArray(v) && v.length === 2 &&
+              Number.isFinite(v[0]) && v[0] >= -180 && v[0] <= 180 &&
+              Number.isFinite(v[1]) && v[1] >= -90 && v[1] <= 90);
+          },
+          message: "GeoJSON coordinates must be [longitude, latitude] within valid ranges",
+        },
+      },
+    },
     // The listing's human-readable location ("Ibara, Abeokuta"). Stored once as
     // `location` rather than split into community/neighborhood/city/state/
     // country: those five fields were accepted by the API but never written by
@@ -122,6 +140,10 @@ const pulseSchema = new mongoose.Schema(
 // If this index ever fails to build because legacy duplicates exist, resolve
 // them first (keep the newest per agent) rather than dropping the constraint.
 pulseSchema.index({ agent: 1 }, { unique: true });
+
+// Geospatial index for nearby discovery. Sparse: only indexes documents that
+// have a valid locationPoint (both coordinates present and in range).
+pulseSchema.index({ locationPoint: "2dsphere" }, { sparse: true });
 
 module.exports = mongoose.model("Pulse", pulseSchema);
 

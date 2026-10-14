@@ -88,6 +88,15 @@ const MAX_LAT = 90;
 const MIN_LNG = -180;
 const MAX_LNG = 180;
 
+function isValidCoordinatePair(latitude, longitude) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= MIN_LAT && latitude <= MAX_LAT &&
+    longitude >= MIN_LNG && longitude <= MAX_LNG
+  );
+}
+
 // Photos are only trusted if they were produced by POST /api/v1/uploads/images,
 // so only this API's own upload path is accepted. Anything else (a remote URL a
 // client made up, a data: URI, a path traversal attempt) is rejected rather
@@ -257,6 +266,12 @@ exports.createPulse = asyncHandler(async (req, res) => {
       accuracy: req.body.accuracy ? Number(req.body.accuracy) : undefined,
       source: req.body.source || "manual",
     };
+    if (isValidCoordinatePair(body.coordinates.latitude, body.coordinates.longitude)) {
+      body.locationPoint = {
+        type: "Point",
+        coordinates: [body.coordinates.longitude, body.coordinates.latitude],
+      };
+    }
   }
 
   body.agent = req.user._id;
@@ -436,4 +451,108 @@ exports.deletePulse = asyncHandler(async (req, res) => {
   // score to attach to.
 
   res.status(200).json({ success: true, data: {} });
+});
+
+// @desc    Get nearby pulses (geospatial)
+// @route   GET /api/v1/pulses/nearby?lat=&lng=&radius=&category=&status=&limit=
+exports.getNearbyPulses = asyncHandler(async (req, res) => {
+  const { lat, lng, radius = 5000, category, status, limit = 50 } = req.query;
+
+  const latitude = Number(lat);
+  const longitude = Number(lng);
+  const radiusMeters = Number(radius);
+  const maxResults = Math.min(Math.max(Number(limit), 1), 100);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid 'lat' and 'lng' query parameters are required",
+    });
+  }
+  if (latitude < MIN_LAT || latitude > MAX_LAT || longitude < MIN_LNG || longitude > MAX_LNG) {
+    return res.status(400).json({
+      success: false,
+      message: "Latitude must be -90 to 90, longitude -180 to 180",
+    });
+  }
+  if (radiusMeters < 100 || radiusMeters > 50000) {
+    return res.status(400).json({
+      success: false,
+      message: "Radius must be between 100 and 50000 meters",
+    });
+  }
+
+  // Privacy: exclude private agents (same as getPulses)
+  const privateAgentIds = await getPrivateAgentIds();
+  const privacyMatch = privateAgentIds.length ? { agent: { $nin: privateAgentIds } } : {};
+
+  // Optional filters
+  const extraMatch = { ...privacyMatch };
+
+  if (category) {
+    if (!ALLOWED_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Must be one of: ${ALLOWED_CATEGORIES.join(", ")}`,
+        code: "INVALID_CATEGORY",
+      });
+    }
+    extraMatch.category = category;
+  }
+
+  if (status) {
+    const requested = Array.isArray(status) ? status : [status];
+    const invalid = requested.filter((s) => !PULSE_STATUSES.includes(s));
+    if (invalid.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status value(s): ${invalid.join(", ")}. Must be one of: ${PULSE_STATUSES.join(", ")}`,
+        code: "INVALID_STATUS",
+      });
+    }
+    extraMatch.status = { $in: requested };
+  } else {
+    // Default: Available + Low Supply + Unavailable (exclude Unconfirmed)
+    extraMatch.status = { $in: ["Available", "Low Supply", "Unavailable"] };
+  }
+
+  // $geoNear aggregation - returns distance in meters automatically
+  const pipeline = [
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: [longitude, latitude] },
+        distanceField: "distanceMeters",
+        maxDistance: radiusMeters,
+        spherical: true,
+        query: extraMatch,
+      },
+    },
+    { $limit: maxResults },
+    {
+      $project: {
+        title: 1,
+        description: 1,
+        location: 1,
+        category: 1,
+        status: 1,
+        trustScore: 1,
+        contactPhone: 1,
+        email: 1,
+        whatsapp: 1,
+        address: 1,
+        coordinates: 1,
+        details: 1,
+        images: 1,
+        agent: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        lastUpdated: 1,
+        distanceMeters: 1,
+      },
+    },
+  ];
+
+  const pulses = await Pulse.aggregate(pipeline);
+
+  res.status(200).json({ success: true, count: pulses.length, data: pulses });
 });
