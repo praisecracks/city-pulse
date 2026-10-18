@@ -5,10 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
-  const androidDownloadDelayHours = 7;
-  const androidAppUnlockAt = new Date(
-    Date.now() + androidDownloadDelayHours * 60 * 60 * 1000,
-  ).toISOString();
+  const androidAppUnlockAt = "2026-10-19T10:38:57.401Z";
 
   return {
     plugins: [react(), tailwindcss()],
