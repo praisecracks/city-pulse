@@ -70,7 +70,6 @@ export default {
             "Allow City Pulse to track your movement to your destination."
         }
       ],
-      "expo-video",
       [
         "expo-image-picker",
         {

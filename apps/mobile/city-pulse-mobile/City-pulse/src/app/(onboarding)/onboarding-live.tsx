@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { VideoBackdrop } from '@/components/video-backdrop';
+import { ImageBackdrop } from '@/components/image-backdrop';
 import { useTheme } from '@/hooks/use-theme';
 
 const BRAND_TEAL = '#129E9E';
@@ -26,9 +26,8 @@ export default function LiveOnboardingScreen() {
   };
 
   return (
-    <VideoBackdrop
+    <ImageBackdrop
       posterSource={require('@/assets/images/Live before you leave.optimized.jpg')}
-      staticOnly={true}
     >
       <ThemedView style={styles.screen}>
         <View style={styles.scrimOverlay} />
@@ -92,7 +91,7 @@ export default function LiveOnboardingScreen() {
           </Pressable>
         </SafeAreaView>
       </ThemedView>
-    </VideoBackdrop>
+    </ImageBackdrop>
   );
 }
 

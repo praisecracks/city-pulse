@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { VideoBackdrop } from '@/components/video-backdrop';
+import { ImageBackdrop } from '@/components/image-backdrop';
 import { useAppState } from '@/state/app-state';
 
 export function AnimatedIcon() {
@@ -26,9 +26,8 @@ export function AnimatedSplashOverlay() {
 
   return (
     <View style={styles.overlay}>
-      <VideoBackdrop
+      <ImageBackdrop
         posterSource={require('@/assets/images/Never waste a trip in Abeokuta again.optimized.jpg')}
-        staticOnly
         tealWash
       >
         <View style={styles.content}>
@@ -39,11 +38,11 @@ export function AnimatedSplashOverlay() {
               resizeMode="contain"
             />
             <Text style={styles.title}>City Pulse</Text>
-            <Text style={styles.subtitle}>ABEOKUTA SOUTH & NORTH</Text>
+            <Text style={styles.subtitle}>STARTING WITH OGUN STATE, NIGERIA</Text>
           </View>
           <Text style={styles.tagline}>Know before you leave home.</Text>
         </View>
-      </VideoBackdrop>
+      </ImageBackdrop>
     </View>
   );
 }

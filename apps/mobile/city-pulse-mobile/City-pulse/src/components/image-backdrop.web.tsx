@@ -1,12 +1,16 @@
+import { Image, ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-type VideoBackdropProps = PropsWithChildren & { tealWash?: boolean };
+type ImageBackdropProps = PropsWithChildren & {
+  posterSource?: ImageSource;
+  tealWash?: boolean;
+};
 
-export function VideoBackdrop({ children, tealWash = false }: VideoBackdropProps) {
+export function ImageBackdrop({ children, posterSource, tealWash = false }: ImageBackdropProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -18,6 +22,14 @@ export function VideoBackdrop({ children, tealWash = false }: VideoBackdropProps
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
+      {posterSource && (
+        <Image
+          source={posterSource}
+          contentFit="cover"
+          style={styles.poster}
+          accessibilityLabel="Onboarding background"
+        />
+      )}
       <LinearGradient
         colors={washColors}
         locations={[0, 0.42, 0.75]}
@@ -31,6 +43,7 @@ export function VideoBackdrop({ children, tealWash = false }: VideoBackdropProps
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fbfbf8', overflow: 'hidden' },
   containerDark: { backgroundColor: '#129E9E' },
+  poster: { ...StyleSheet.absoluteFill },
   wash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   content: { flex: 1 },
 });

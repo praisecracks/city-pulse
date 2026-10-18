@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { VideoBackdrop } from '@/components/video-backdrop';
+import { ImageBackdrop } from '@/components/image-backdrop';
 import { useAppState } from '@/state/app-state';
 import { resolveDisplayArea } from '@/utils/display-area';
 
@@ -43,9 +43,8 @@ export default function CurrentLocationScreen() {
   };
 
   return (
-    <VideoBackdrop
+    <ImageBackdrop
       posterSource={require('@/assets/images/Find active services closest to you..jpg')}
-      staticOnly
     >
       <ThemedView style={styles.screen}>
         <View style={styles.scrimOverlay} />
@@ -159,7 +158,7 @@ export default function CurrentLocationScreen() {
           </View>
         </SafeAreaView>
       </ThemedView>
-    </VideoBackdrop>
+    </ImageBackdrop>
   );
 }
 
