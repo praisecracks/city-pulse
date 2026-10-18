@@ -153,18 +153,38 @@ exports.getUsers = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/v1/admin-pulse/listings
- * Returns provider listings awaiting review, including owner and photo details.
+ * Returns provider listings filtered by moderation state, including owner and
+ * photo details. Missing reviewStatus is a legacy, publicly visible listing.
  */
 exports.getPendingListings = asyncHandler(async (req, res) => {
   const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
   const skip = (page - 1) * limit;
-  const query = { reviewStatus: "pending_review" };
+  const reviewStatus = req.query.reviewStatus || "pending_review";
+  const filters = {
+    pending_review: { reviewStatus: "pending_review" },
+    approved: {
+      $or: [
+        { reviewStatus: "approved" },
+        { reviewStatus: { $exists: false } },
+      ],
+    },
+    rejected: { reviewStatus: "rejected" },
+    all: {},
+  };
+
+  if (!Object.prototype.hasOwnProperty.call(filters, reviewStatus)) {
+    return res.status(400).json({
+      success: false,
+      message: "Listing filter must be pending_review, approved, rejected, or all.",
+    });
+  }
+  const query = filters[reviewStatus];
 
   const [data, total] = await Promise.all([
     Pulse.find(query)
       .populate("agent", "name email phone isVerified")
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: reviewStatus === "pending_review" ? 1 : -1 })
       .skip(skip)
       .limit(limit),
     Pulse.countDocuments(query),

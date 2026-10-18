@@ -52,6 +52,9 @@ test("provider submissions are pending review regardless of client-supplied stat
       body: {
         title: "Test Gas",
         category: "gas",
+        location: "Ibara, Abeokuta South, Ogun State",
+        localGovernment: "Abeokuta South",
+        address: "Near Kuto Market",
         details: { pricePerKg: 1200 },
         reviewStatus: "approved",
       },
@@ -61,7 +64,30 @@ test("provider submissions are pending review regardless of client-supplied stat
     assert.equal(response.statusCode, 201);
     assert.equal(created.reviewStatus, "pending_review");
     assert.equal(created.status, "Unconfirmed");
+    assert.equal(created.state, "Ogun State");
+    assert.equal(created.localGovernment, "Abeokuta South");
+    assert.equal(created.coordinates, undefined);
     assert.deepEqual(user.roles, ["agent"]);
+  } finally {
+    Pulse.create = originalCreate;
+  }
+});
+
+test("provider submissions reject local government areas outside the allowed Ogun list", async () => {
+  let created = false;
+  const originalCreate = Pulse.create;
+  try {
+    Pulse.create = async () => {
+      created = true;
+    };
+    const response = await runController(createPulse, {
+      body: { localGovernment: "Lagos Mainland" },
+      user: { _id: "provider-id", roles: [], save: async () => {} },
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.match(response.body.message, /Ogun State local government/);
+    assert.equal(created, false);
   } finally {
     Pulse.create = originalCreate;
   }

@@ -18,6 +18,37 @@ const pulseSchema = new mongoose.Schema(
       required: [true, "A listing needs a location"],
       trim: true,
     },
+    state: {
+      type: String,
+      enum: ["Ogun State"],
+      default: "Ogun State",
+    },
+    localGovernment: {
+      type: String,
+      enum: [
+        "Abeokuta North",
+        "Abeokuta South",
+        "Ado-Odo/Ota",
+        "Yewa North",
+        "Yewa South",
+        "Ewekoro",
+        "Ifo",
+        "Ijebu East",
+        "Ijebu North",
+        "Ijebu North East",
+        "Ijebu Ode",
+        "Ikenne",
+        "Imeko Afon",
+        "Ipokia",
+        "Obafemi Owode",
+        "Odeda",
+        "Odogbolu",
+        "Ogun Waterside",
+        "Remo North",
+        "Sagamu",
+      ],
+      trim: true,
+    },
     category: {
       type: String,
       trim: true,
@@ -88,15 +119,9 @@ const pulseSchema = new mongoose.Schema(
         },
       },
     },
-    // The listing's human-readable location ("Ibara, Abeokuta"). Stored once as
-    // `location` rather than split into community/neighborhood/city/state/
-    // country: those five fields were accepted by the API but never written by
-    // any client and never read by any client, so they were a place to put
-    // address data that would then silently not appear anywhere. Exact
-    // coordinates live in `coordinates` for distance maths.
-    //
-    // If structured location filtering is ever needed, add the fields the
-    // clients actually send and read in the same change — not speculatively.
+    // `location` holds the neighborhood, while state and localGovernment hold
+    // the provider's fixed Ogun State service region. Exact coordinates, when
+    // supplied, are stored separately for distance calculations.
     details: {
       type: mongoose.Schema.Types.Mixed,
       required: [true, "A listing needs category-specific details"],

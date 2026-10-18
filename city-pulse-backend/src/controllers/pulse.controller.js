@@ -39,6 +39,7 @@ const CREATE_FIELDS = [
   "title",
   "description",
   "location",
+  "localGovernment",
   "category",
   "contactPhone",
   "email",
@@ -70,13 +71,14 @@ const CREATE_FIELDS = [
  * a suggestion — `PUT /pulses/:id` is a public authenticated route, and a
  * request built by hand would otherwise change any of these.
  */
-const IMMUTABLE_AFTER_PUBLISH = ["title", "location", "address", "category"];
+const IMMUTABLE_AFTER_PUBLISH = ["title", "location", "localGovernment", "address", "category"];
 
 const UPDATE_FIELDS = CREATE_FIELDS.filter((field) => !IMMUTABLE_AFTER_PUBLISH.includes(field));
 
 const LOCKED_FIELD_LABELS = {
   title: "business name",
   location: "area / neighborhood",
+  localGovernment: "local government",
   address: "street address",
   category: "category",
 };
@@ -261,6 +263,26 @@ exports.createPulse = asyncHandler(async (req, res) => {
   for (const field of CREATE_FIELDS) {
     if (req.body[field]) body[field] = req.body[field];
   }
+
+  if (!body.localGovernment || !Pulse.schema.path("localGovernment").enumValues.includes(body.localGovernment)) {
+    return res.status(400).json({
+      success: false,
+      message: "Select a valid Ogun State local government area",
+    });
+  }
+  if (!body.location || body.location.trim().length < 2) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter your service area or neighborhood",
+    });
+  }
+  if (typeof body.address !== "string" || body.address.trim().length < 5) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a street address or nearby landmark",
+    });
+  }
+  body.state = "Ogun State";
 
   const detailsError = validateDetails(body.category, body.details);
   if (detailsError) {

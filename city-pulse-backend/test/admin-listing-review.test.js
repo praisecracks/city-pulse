@@ -33,7 +33,7 @@ async function runController(handler, req) {
   return response;
 }
 
-test("admin review queue only queries pending listings and populates provider identity", async () => {
+test("admin listing filters query review states and populate provider identity", async () => {
   const originalFind = Pulse.find;
   const originalCount = Pulse.countDocuments;
   let findQuery;
@@ -62,7 +62,7 @@ test("admin review queue only queries pending listings and populates provider id
     };
 
     const response = await runController(getPendingListings, {
-      query: { page: "2", limit: "10" },
+      query: { page: "2", limit: "10", reviewStatus: "pending_review" },
     });
 
     assert.deepEqual(findQuery, { reviewStatus: "pending_review" });
@@ -74,6 +74,51 @@ test("admin review queue only queries pending listings and populates provider id
     Pulse.find = originalFind;
     Pulse.countDocuments = originalCount;
   }
+});
+
+test("admin can view approved listings or all listings including legacy entries", async () => {
+  const originalFind = Pulse.find;
+  const originalCount = Pulse.countDocuments;
+  const queries = [];
+
+  try {
+    Pulse.find = (query) => {
+      queries.push(query);
+      return {
+        populate: () => ({
+          sort: () => ({
+            skip: () => ({
+              limit: async () => [],
+            }),
+          }),
+        }),
+      };
+    };
+    Pulse.countDocuments = async () => 0;
+
+    await runController(getPendingListings, { query: { reviewStatus: "approved" } });
+    await runController(getPendingListings, { query: { reviewStatus: "all" } });
+
+    assert.deepEqual(queries[0], {
+      $or: [
+        { reviewStatus: "approved" },
+        { reviewStatus: { $exists: false } },
+      ],
+    });
+    assert.deepEqual(queries[1], {});
+  } finally {
+    Pulse.find = originalFind;
+    Pulse.countDocuments = originalCount;
+  }
+});
+
+test("admin listing filter rejects unsupported review states", async () => {
+  const response = await runController(getPendingListings, {
+    query: { reviewStatus: "unverified" },
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.body.message, /pending_review, approved, rejected, or all/);
 });
 
 test("admin can approve only a pending listing and the provider becomes verified", async () => {
