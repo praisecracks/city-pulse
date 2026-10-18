@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
+export function adminAssetUrl(path) {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  return new URL(path, new URL(API_BASE, window.location.origin).origin).toString();
+}
+
 function authHeaders(token) {
   return {
     "Content-Type": "application/json",
@@ -35,6 +41,14 @@ export const adminApi = {
     request(`/admin-pulse/contacts?page=${page}&limit=${limit}`, { token }),
   users: (token, page = 1, limit = 50) =>
     request(`/admin-pulse/users?page=${page}&limit=${limit}`, { token }),
+  pendingListings: (token, page = 1, limit = 20) =>
+    request(`/admin-pulse/listings?page=${page}&limit=${limit}`, { token }),
+  reviewListing: (token, listingId, reviewStatus, note) =>
+    request(`/admin-pulse/listings/${encodeURIComponent(listingId)}/review`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ reviewStatus, note }),
+    }),
 };
 
 export default adminApi;

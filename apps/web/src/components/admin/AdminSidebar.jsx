@@ -36,6 +36,12 @@ const NAV_SECTIONS = [
         icon: "groups",
         badge: null,
       },
+      {
+        to: "/admin-pulse/listings",
+        label: "Listing Review",
+        icon: "fact_check",
+        badge: null,
+      },
     ],
   },
   {

@@ -12,6 +12,7 @@ import AdminWaitlist from "../Pages/AdminWaitlist";
 import AdminContacts from "../Pages/AdminContacts";
 import AdminUsers from "../Pages/AdminUsers";
 import AdminAnalytics from "../Pages/AdminAnalytics";
+import AdminListings from "../Pages/AdminListings";
 import AdminRoute from "../components/AdminRoute";
 
 export const router = createBrowserRouter([
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
         { path: "/admin-pulse/waitlist", element: <AdminWaitlist /> },
         { path: "/admin-pulse/contacts", element: <AdminContacts /> },
         { path: "/admin-pulse/users", element: <AdminUsers /> },
+        { path: "/admin-pulse/listings", element: <AdminListings /> },
         { path: "/admin-pulse/analytics", element: <AdminAnalytics /> },
       ]},
     ],
