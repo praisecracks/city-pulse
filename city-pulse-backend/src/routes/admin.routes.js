@@ -10,6 +10,8 @@ const {
   getWaitlist,
   getContacts,
   getUsers,
+  getPendingListings,
+  reviewListing,
 } = require("../controllers/admin.controller");
 
 // Login is the only public route on this router.
@@ -29,5 +31,7 @@ router.get("/analytics/timeline", adminAuth, getTimeline);
 router.get("/waitlist", adminAuth, getWaitlist);
 router.get("/contacts", adminAuth, getContacts);
 router.get("/users", adminAuth, getUsers);
+router.get("/listings", adminAuth, getPendingListings);
+router.patch("/listings/:id/review", adminAuth, reviewListing);
 
 module.exports = router;

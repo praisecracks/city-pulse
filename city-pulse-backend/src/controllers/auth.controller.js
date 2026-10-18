@@ -3,6 +3,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const { JWT_SECRET, JWT_EXPIRES_IN } = require("../config/jwt");
+const {
+  normalizeEmail,
+  isValidEmail,
+  normalizePhone,
+  isStrongPassword,
+} = require("../utils/auth-validation");
+const emailService = require("../services/emailService");
 
 const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000;
 
@@ -10,19 +17,40 @@ function generateResetToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+function hashResetToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 async function signUp(req, res, next) {
   try {
-    const { name, email, phone, password, intent } = req.body;
+    const { name, email, phone, password, intent } = req.body || {};
 
-    if (!name || !email || !phone || !password) {
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      name.trim().length > 50 ||
+      !email ||
+      !phone ||
+      !password
+    ) {
       return res.status(400).json({ success: false, message: "Name, email, phone, and password are required" });
     }
 
-    const normalizedPhone = phone.startsWith("0") ? phone : "0" + phone.replace(/^234/, "");
-    const normalizedEmail = String(email).toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ success: false, message: "Enter a valid email address" });
+    }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ success: false, message: "Enter a valid Nigerian phone number" });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character",
+      });
     }
 
     const existingPhone = await User.findOne({ phone: normalizedPhone });
@@ -42,7 +70,8 @@ async function signUp(req, res, next) {
       email: normalizedEmail,
       phone: normalizedPhone,
       password: hashedPassword,
-      otpVerified: true,
+      otpVerified: false,
+      isVerified: false,
       agentIntent: intent === "agent",
     });
 
@@ -52,6 +81,15 @@ async function signUp(req, res, next) {
       data: { userId: user._id },
     });
   } catch (err) {
+    if (err?.code === 11000) {
+      const duplicateField =
+        Object.keys(err.keyPattern || {})[0] || Object.keys(err.keyValue || {})[0];
+      const message =
+        duplicateField === "phone"
+          ? "Phone number already registered"
+          : "Email already registered";
+      return res.status(409).json({ success: false, message });
+    }
     next(err);
   }
 }
@@ -60,25 +98,32 @@ async function signIn(req, res, next) {
   try {
     const { identifier, password } = req.body;
 
-    if (!identifier || !password) {
+    if (typeof identifier !== "string" || !identifier.trim() || typeof password !== "string" || !password) {
       return res.status(400).json({ success: false, message: "Phone/email and password are required" });
     }
 
-    const normalizedIdentifier = identifier.toLowerCase().trim();
-    const isPhone = /^[\d\s\+\-]+$/.test(normalizedIdentifier);
+    const trimmedIdentifier = identifier.trim();
+    const isPhone = /^[+()\d\s-]+$/.test(trimmedIdentifier);
+    let query;
 
-    const query = isPhone
-      ? { phone: normalizedIdentifier.startsWith("0") ? normalizedIdentifier : "0" + normalizedIdentifier.replace(/^234/, "") }
-      : { email: normalizedIdentifier };
+    if (isPhone) {
+      const normalizedPhone = normalizePhone(trimmedIdentifier);
+      if (!normalizedPhone) {
+        return res.status(400).json({ success: false, message: "Enter a valid Nigerian phone number" });
+      }
+      query = { phone: normalizedPhone };
+    } else {
+      const normalizedEmail = normalizeEmail(trimmedIdentifier);
+      if (!isValidEmail(normalizedEmail)) {
+        return res.status(400).json({ success: false, message: "Enter a valid email address" });
+      }
+      query = { email: normalizedEmail };
+    }
 
     const user = await User.findOne(query).select("+password");
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
-
-    if (!user.otpVerified) {
-      return res.status(401).json({ success: false, message: "Account not verified" });
     }
 
     const token = jwt.sign(
@@ -96,6 +141,7 @@ async function signIn(req, res, next) {
           email: user.email,
           phone: user.phone,
           otpVerified: user.otpVerified,
+          isVerified: user.isVerified,
           roles: user.roles,
           agentIntent: user.agentIntent,
           trustScore: user.trustScore,
@@ -113,31 +159,58 @@ async function signIn(req, res, next) {
 
 async function forgotPassword(req, res, next) {
   try {
-    const { email } = req.body;
+    const { email } = req.body || {};
 
-    if (!email) {
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({ success: false, message: "Email is required" });
     }
 
-    const normalizedEmail = String(email).toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ success: false, message: "Enter a valid email address" });
+    }
+
+    try {
+      emailService.validatePasswordResetEmailConfig();
+    } catch (error) {
+      console.error("[auth] Password reset email configuration error:", error.message);
+      return res.status(503).json({
+        success: false,
+        message: "Password reset email is temporarily unavailable. Please try again later.",
+      });
+    }
+
     const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      return res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
+      return res.status(200).json({
+        success: true,
+        message: "If the email exists, a reset link has been sent",
+      });
     }
 
     const resetToken = generateResetToken();
-    const resetTokenExpiry = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
-
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = resetTokenExpiry;
+    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+    try {
+      await emailService.sendPasswordResetEmail(normalizedEmail, resetToken);
+    } catch (error) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      console.error("[auth] Password reset email delivery failed:", error.message);
+      return res.status(503).json({
+        success: false,
+        message: "Password reset email is temporarily unavailable. Please try again later.",
+      });
+    }
 
-    console.log(`[DEV] Password reset link for ${normalizedEmail}: ${resetUrl}`);
-
-    res.status(200).json({ success: true, message: "If the email exists, a reset link has been sent" });
+    res.status(200).json({
+      success: true,
+      message: "If the email exists, a reset link has been sent",
+    });
   } catch (err) {
     next(err);
   }
@@ -147,18 +220,21 @@ async function resetPassword(req, res, next) {
   try {
     const { token, password } = req.body;
 
-    if (!token || !password) {
+    if (typeof token !== "string" || !/^[a-f\d]{64}$/i.test(token) || !password) {
       return res.status(400).json({ success: false, message: "Token and new password are required" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character",
+      });
     }
 
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashResetToken(token),
       resetPasswordExpires: { $gt: new Date() },
-    }).select("+password");
+    }).select("+password +resetPasswordToken +resetPasswordExpires");
 
     if (!user) {
       return res.status(400).json({ success: false, message: "Invalid or expired reset token" });
@@ -188,6 +264,7 @@ async function getMe(req, res, next) {
           email: user.email,
           phone: user.phone,
           otpVerified: user.otpVerified,
+          isVerified: user.isVerified,
           roles: user.roles,
           agentIntent: user.agentIntent,
           trustScore: user.trustScore,

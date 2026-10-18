@@ -8,6 +8,7 @@ const {
   createPulse,
   updatePulse,
   updatePulseStatus,
+  resubmitPulse,
   deletePulse,
   getNearbyPulses,
 } = require("../controllers/pulse.controller");
@@ -24,6 +25,8 @@ router.route("/mine").get(auth, getMyPulses);
 router
   .route("/:id/status")
   .patch(auth, updatePulseStatus);
+
+router.route("/:id/resubmit").post(auth, resubmitPulse);
 
 // Reporting. Auth is required because a report is tied to an account for
 // anti-abuse (PRD F8), but no role gate: per the product decision, an account

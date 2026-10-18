@@ -3,6 +3,7 @@ const UserWaitlist = require("../models/userWaitlist.model");
 const AgentWaitlist = require("../models/agentWaitlist.model");
 const Contact = require("../models/contact.model");
 const User = require("../models/user.model");
+const Pulse = require("../models/pulse.model");
 const asyncHandler = require("../utils/asyncHandler");
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -148,4 +149,87 @@ exports.getUsers = asyncHandler(async (req, res) => {
   ]);
 
   res.status(200).json({ success: true, data: { data, total, page, limit } });
+});
+
+/**
+ * GET /api/v1/admin-pulse/listings
+ * Returns provider listings awaiting review, including owner and photo details.
+ */
+exports.getPendingListings = asyncHandler(async (req, res) => {
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+  const skip = (page - 1) * limit;
+  const query = { reviewStatus: "pending_review" };
+
+  const [data, total] = await Promise.all([
+    Pulse.find(query)
+      .populate("agent", "name email phone isVerified")
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit),
+    Pulse.countDocuments(query),
+  ]);
+
+  res.status(200).json({ success: true, data: { data, total, page, limit } });
+});
+
+/**
+ * PATCH /api/v1/admin-pulse/listings/:id/review
+ * Approves or rejects a pending provider listing.
+ */
+exports.reviewListing = asyncHandler(async (req, res) => {
+  const { reviewStatus, note } = req.body || {};
+
+  if (!["approved", "rejected"].includes(reviewStatus)) {
+    return res.status(400).json({
+      success: false,
+      message: "Review status must be approved or rejected.",
+    });
+  }
+  if (note !== undefined && (typeof note !== "string" || note.trim().length > 500)) {
+    return res.status(400).json({
+      success: false,
+      message: "Review notes must be text no longer than 500 characters.",
+    });
+  }
+  if (reviewStatus === "rejected" && (typeof note !== "string" || !note.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: "Add a reason so the provider knows what to correct before resubmitting.",
+    });
+  }
+
+  const pulse = await Pulse.findOneAndUpdate(
+    { _id: req.params.id, reviewStatus: "pending_review" },
+    {
+      $set: {
+        reviewStatus,
+        reviewNote: typeof note === "string" ? note.trim() : "",
+        reviewedAt: new Date(),
+        reviewedBy: req.admin.sub,
+      },
+    },
+    { new: true, runValidators: true },
+  ).populate("agent", "name email phone isVerified");
+
+  if (!pulse) {
+    return res.status(404).json({
+      success: false,
+      message: "Pending listing not found. It may have already been reviewed.",
+    });
+  }
+
+  const agentId = pulse.agent?._id || pulse.agent;
+  const agent = await User.findByIdAndUpdate(
+    agentId,
+    { $set: { isVerified: reviewStatus === "approved" } },
+    { new: true, runValidators: true },
+  ).select("_id name email phone isVerified");
+
+  if (!agent) {
+    throw new Error("Listing owner could not be found while updating verification.");
+  }
+
+  pulse.agent = agent;
+  res.status(200).json({ success: true, data: pulse });
 });

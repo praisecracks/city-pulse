@@ -22,9 +22,16 @@ exports.getPulses = asyncHandler(async (req, res) => {
   // entirely, not greyed out: hiding means customers must not be able to find
   // them. The listing itself is untouched, so un-hiding is instant.
   const privateAgentIds = await getPrivateAgentIds();
-  const query = privateAgentIds.length ? { agent: { $nin: privateAgentIds } } : {};
+  const query = {
+    $and: [
+      PUBLIC_REVIEW_FILTER,
+      ...(privateAgentIds.length ? [{ agent: { $nin: privateAgentIds } }] : []),
+    ],
+  };
 
-  const pulses = await Pulse.find(query).sort({ createdAt: -1 });
+  const pulses = await Pulse.find(query)
+    .select("-reviewNote -reviewedAt -reviewedBy")
+    .sort({ createdAt: -1 });
   res.status(200).json({ success: true, count: pulses.length, data: pulses });
 });
 
@@ -82,6 +89,12 @@ const MAX_CAPTION_LENGTH = 120;
 // Read straight off the schema so the valid set for the status endpoint can
 // never drift from the enum the model will actually enforce.
 const PULSE_STATUSES = Pulse.schema.path("status").enumValues;
+const PUBLIC_REVIEW_FILTER = {
+  $or: [
+    { reviewStatus: "approved" },
+    { reviewStatus: { $exists: false } },
+  ],
+};
 
 const MIN_LAT = -90;
 const MAX_LAT = 90;
@@ -214,7 +227,9 @@ function validateDetails(category, details) {
 // @route   GET /api/v1/pulses/mine
 // @access  Private
 exports.getMyPulses = asyncHandler(async (req, res) => {
-  const pulses = await Pulse.find({ agent: req.user._id }).sort({ createdAt: -1 });
+  const pulses = await Pulse.find({ agent: req.user._id })
+    .populate("agent", "_id isVerified")
+    .sort({ createdAt: -1 });
 
   // Deliberately an array even though the schema now allows only one listing
   // per provider. If a legacy duplicate survives a dedupe, or the one-listing
@@ -225,7 +240,12 @@ exports.getMyPulses = asyncHandler(async (req, res) => {
 // @desc    Get single pulse
 // @route   GET /api/v1/pulses/:id
 exports.getPulseById = asyncHandler(async (req, res) => {
-  const pulse = await Pulse.findById(req.params.id);
+  const privateAgentIds = await getPrivateAgentIds();
+  const pulse = await Pulse.findOne({
+    _id: req.params.id,
+    ...PUBLIC_REVIEW_FILTER,
+    ...(privateAgentIds.length ? { agent: { $nin: privateAgentIds } } : {}),
+  }).select("-reviewNote -reviewedAt -reviewedBy");
 
   if (!pulse) {
     return res.status(404).json({ success: false, message: "Listing not found" });
@@ -276,6 +296,7 @@ exports.createPulse = asyncHandler(async (req, res) => {
 
   body.agent = req.user._id;
   body.status = "Unconfirmed";
+  body.reviewStatus = "pending_review";
   // Every provider starts at exactly 3.0 (trustScoreService.STARTING_TRUST).
   // It is never higher and never lower at publish time; only reports move it,
   // and only downwards.
@@ -295,7 +316,7 @@ exports.createPulse = asyncHandler(async (req, res) => {
       // treating a finished provider as an in-progress applicant.
       return res.status(409).json({
         success: false,
-        message: "You already have a published listing. Open your dashboard to update it.",
+        message: "You already submitted a listing. Open your dashboard to manage it.",
         roles: req.user.roles,
         code: "LISTING_ALREADY_EXISTS",
       });
@@ -339,7 +360,7 @@ exports.updatePulse = asyncHandler(async (req, res) => {
   if (attempted.length > 0) {
     return res.status(400).json({
       success: false,
-      message: `Your ${attempted.map((f) => LOCKED_FIELD_LABELS[f]).join(", ")} cannot be changed after publishing.`,
+      message: `Your ${attempted.map((f) => LOCKED_FIELD_LABELS[f]).join(", ")} cannot be changed after submission.`,
       code: "LISTING_FIELDS_IMMUTABLE",
       fields: attempted,
     });
@@ -350,7 +371,7 @@ exports.updatePulse = asyncHandler(async (req, res) => {
   if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
     return res.status(400).json({
       success: false,
-      message: "Your listing location cannot be changed after publishing.",
+      message: "Your listing location cannot be changed after submission.",
       code: "LISTING_FIELDS_IMMUTABLE",
       fields: ["latitude", "longitude"],
     });
@@ -414,6 +435,13 @@ exports.updatePulseStatus = asyncHandler(async (req, res) => {
   if (String(pulse.agent) !== String(req.user._id)) {
     return res.status(403).json({ success: false, message: "You can only update your own listings" });
   }
+  if (pulse.reviewStatus && pulse.reviewStatus !== "approved") {
+    return res.status(409).json({
+      success: false,
+      message: "Your listing must be approved before you can broadcast an availability status.",
+      code: "LISTING_PENDING_REVIEW",
+    });
+  }
 
   // Captured before the write so a real transition can be distinguished from a
   // provider re-confirming the status they already had. Re-saving "Available"
@@ -429,6 +457,35 @@ exports.updatePulseStatus = asyncHandler(async (req, res) => {
   if (previousStatus !== status) {
     await notifyStatusUpdated({ pulse, from: previousStatus, to: status });
   }
+
+  res.status(200).json({ success: true, data: pulse });
+});
+
+// @desc    Resubmit a rejected listing for admin review
+// @route   POST /api/v1/pulses/:id/resubmit
+// @access  Private (owner only)
+exports.resubmitPulse = asyncHandler(async (req, res) => {
+  const pulse = await Pulse.findById(req.params.id);
+  if (!pulse) {
+    return res.status(404).json({ success: false, message: "Listing not found" });
+  }
+  if (String(pulse.agent) !== String(req.user._id)) {
+    return res.status(403).json({ success: false, message: "You can only resubmit your own listing" });
+  }
+  if (pulse.reviewStatus !== "rejected") {
+    return res.status(409).json({
+      success: false,
+      message: "Only rejected listings can be submitted for review again.",
+      code: "LISTING_NOT_REJECTED",
+    });
+  }
+
+  pulse.reviewStatus = "pending_review";
+  pulse.reviewNote = undefined;
+  pulse.reviewedAt = undefined;
+  pulse.reviewedBy = undefined;
+  await pulse.save();
+  await pulse.populate("agent", "_id isVerified");
 
   res.status(200).json({ success: true, data: pulse });
 });
@@ -484,7 +541,10 @@ exports.getNearbyPulses = asyncHandler(async (req, res) => {
 
   // Privacy: exclude private agents (same as getPulses)
   const privateAgentIds = await getPrivateAgentIds();
-  const privacyMatch = privateAgentIds.length ? { agent: { $nin: privateAgentIds } } : {};
+  const privacyMatch = {
+    ...PUBLIC_REVIEW_FILTER,
+    ...(privateAgentIds.length ? { agent: { $nin: privateAgentIds } } : {}),
+  };
 
   // Optional filters
   const extraMatch = { ...privacyMatch };
@@ -535,6 +595,10 @@ exports.getNearbyPulses = asyncHandler(async (req, res) => {
         location: 1,
         category: 1,
         status: 1,
+        reviewStatus: 1,
+        reviewNote: 0,
+        reviewedAt: 0,
+        reviewedBy: 0,
         trustScore: 1,
         contactPhone: 1,
         email: 1,

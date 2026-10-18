@@ -28,6 +28,19 @@ const pulseSchema = new mongoose.Schema(
       enum: ["Available", "Low Supply", "Unavailable", "Unconfirmed"],
       default: "Unconfirmed",
     },
+    // Moderation is separate from live availability. New submissions are
+    // assigned pending_review by the API; missing means a legacy listing.
+    reviewStatus: {
+      type: String,
+      enum: ["pending_review", "approved", "rejected"],
+    },
+    reviewNote: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    reviewedAt: { type: Date },
+    reviewedBy: { type: String },
     trustScore: {
       type: Number,
       default: 3,
@@ -146,4 +159,3 @@ pulseSchema.index({ agent: 1 }, { unique: true });
 pulseSchema.index({ locationPoint: "2dsphere" }, { sparse: true });
 
 module.exports = mongoose.model("Pulse", pulseSchema);
-

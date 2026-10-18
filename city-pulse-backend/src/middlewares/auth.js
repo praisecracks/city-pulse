@@ -31,10 +31,10 @@ const auth = async (req, res, next) => {
       }
 
       const normalizedPhone = phone.startsWith("0") ? phone : "0" + phone.replace(/^234/, "");
-      const user = await User.findOne({ phone: normalizedPhone, otpVerified: true });
+      const user = await User.findOne({ phone: normalizedPhone });
 
       if (!user) {
-        return res.status(401).json({ success: false, message: "No verified dev user found" });
+        return res.status(401).json({ success: false, message: "No dev user found for this phone number" });
       }
       req.user = user;
       return next();
@@ -44,8 +44,8 @@ const auth = async (req, res, next) => {
 
     const user = await User.findById(decoded.userId);
 
-    if (!user || !user.otpVerified) {
-      return res.status(401).json({ success: false, message: "Invalid or unverified user" });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid user" });
     }
 
     req.user = user;

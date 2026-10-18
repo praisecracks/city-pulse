@@ -33,6 +33,9 @@ exports.createReport = asyncHandler(async (req, res) => {
   if (!pulse) {
     return res.status(404).json({ success: false, message: "Listing not found" });
   }
+  if (pulse.reviewStatus && pulse.reviewStatus !== "approved") {
+    return res.status(404).json({ success: false, message: "Listing not found" });
+  }
 
   // Self-report. An agent opening their own public listing must not be able to
   // file a report against themselves — that is the cheapest way to abuse the

@@ -47,6 +47,14 @@ what lets the verification scripts mount the real app on an ephemeral port.
 `JWT_SECRET` is required when `NODE_ENV=production` — the server refuses to boot
 without it rather than falling back to a known secret.
 
+Password reset emails require `SMTP_HOST`, `SMTP_PORT`, and `SMTP_FROM`; set
+`SMTP_USER` and `SMTP_PASS` together when your provider requires authentication.
+Use `SMTP_SECURE=true` for implicit TLS (usually port 465), or `false` for
+STARTTLS (usually port 587). `PASSWORD_RESET_URL` defaults to
+`citypulse://reset-password`, which opens the mobile app when installed. Set it
+to an HTTPS universal/app link if one is configured for your deployment. Reset
+links expire after 15 minutes and are stored as hashes.
+
 ## API
 
 Base URL: `/api/v1`. Every endpoint below `auth` requires
@@ -58,12 +66,20 @@ Base URL: `/api/v1`. Every endpoint below `auth` requires
 |--------|---------------------|--------------------------------|
 | POST   | `/send-otp`         | Request a login OTP            |
 | POST   | `/verify-otp`       | Verify OTP, returns a JWT      |
+| POST   | `/forgot-password`  | Email a one-time password reset link |
+| POST   | `/reset-password`   | Set a password using the reset token |
 | GET    | `/me`               | Current user                   |
 | DELETE | `/delete-account`   | Delete the account             |
 | PATCH  | `/me/visibility`    | Public / private business profile |
 | GET    | `/me/favorites`     | Saved listings, fully resolved |
 | POST   | `/me/favorites`     | Save a listing                 |
 | DELETE | `/me/favorites/:id` | Unsave a listing               |
+
+Admin listing moderation endpoints live under `/api/v1/admin-pulse` and require
+an admin bearer token: `GET /listings` returns paginated pending submissions,
+and `PATCH /listings/:id/review` accepts `{ "reviewStatus": "approved" }` or
+`{ "reviewStatus": "rejected", "note": "..." }`. Rejection notes are required
+and shown to providers so they can update and resubmit their listing.
 
 ### Pulses — `/pulses`
 

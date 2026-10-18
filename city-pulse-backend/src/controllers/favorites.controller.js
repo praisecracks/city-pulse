@@ -19,9 +19,15 @@ const MAX_FAVORITES = 200;
 exports.getFavorites = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).populate({
     path: "favorites",
-    // A saved listing whose provider unpublished it leaves a null hole, which is
+    // Removed, private, or unapproved listings leave null holes, which are
     // filtered below and pruned from the stored array.
     select: "-__v",
+    match: {
+      $or: [
+        { reviewStatus: "approved" },
+        { reviewStatus: { $exists: false } },
+      ],
+    },
   });
 
   if (!user) {
@@ -49,6 +55,9 @@ exports.addFavorite = asyncHandler(async (req, res) => {
 
   const pulse = await Pulse.findById(pulseId);
   if (!pulse) {
+    return res.status(404).json({ success: false, message: "Listing not found" });
+  }
+  if (pulse.reviewStatus && pulse.reviewStatus !== "approved") {
     return res.status(404).json({ success: false, message: "Listing not found" });
   }
 

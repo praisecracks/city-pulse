@@ -14,31 +14,13 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    /**
-     * An address offered by a later sign-up but not yet proven.
-     *
-     * `email` is only ever written from a verified request. Knowing someone's
-     * phone number is not proof they own an address, so an address arriving on
-     * /auth/send-otp is parked here and moved into `email` by verifyOtp once
-     * the code has been proven. Writing it immediately let anyone who knew a
-     * phone number permanently re-point that account's address, which also
-     * freed the old address for someone else to claim.
-     */
+    // Retained for compatibility with older OTP-based account records.
     pendingEmail: {
       type: String,
       lowercase: true,
       trim: true,
     },
-    /**
-     * True while `email` is a generated stand-in rather than an address the
-     * person supplied.
-     *
-     * It gates the one legitimate case for adopting a new address: the person
-     * signed up with a phone only, and a later sign-up supplies their real one.
-     * An account that already has a real address is never overwritten, so a
-     * shared placeholder sent by the phone-only sign-in screen cannot clobber
-     * it.
-     */
+    // Retained for compatibility with older phone-only account records.
     emailIsPlaceholder: {
       type: Boolean,
       default: false,
@@ -52,9 +34,15 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: 6,
+      minlength: 8,
       select: false,
     },
+    // This is platform/admin review, not proof of phone ownership or an OTP.
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    // Legacy OTP state; account review status is tracked separately by isVerified.
     otpVerified: {
       type: Boolean,
       default: false,
