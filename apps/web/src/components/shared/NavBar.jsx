@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import Logo from "../../assets/Logo.png";
-
-const androidDownloadUrl = import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL;
+import AndroidDownloadAction from "./AndroidDownloadAction";
 
 const navLinks = [
   { to: "/", label: "Home", end: true },
@@ -25,7 +24,7 @@ const NavBar = () => {
 
   return (
     <nav className="sticky top-5 z-50 mx-auto mb-3 w-[92%] rounded-[30px] border border-[#129E9E]/30 bg-[#129E9E] px-4 py-3 shadow-sm sm:w-[90%] sm:px-6">
-      <div className="mx-auto flex min-h-10 max-w-[1240px] items-center justify-between sm:px-2 lg:px-8 xl:px-12">
+      <div className="relative mx-auto flex min-h-10 max-w-[1240px] items-center sm:px-2 lg:px-8 xl:px-12">
         <NavLink to="/" className="flex shrink-0 items-center">
           <img
             src={Logo}
@@ -34,7 +33,7 @@ const NavBar = () => {
           />
         </NavLink>
 
-        <div className="hidden items-center text-sm text-white md:flex md:gap-6 lg:gap-10 xl:gap-14 xl:text-[16px]">
+        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 text-sm text-white lg:flex xl:gap-10 xl:text-[16px]">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -47,32 +46,24 @@ const NavBar = () => {
           ))}
         </div>
 
-        <NavLink
-          to="/contact"
-          className={({ isActive }) =>
-            `hidden rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors md:block lg:px-5 lg:text-[16px] ${
-              isActive ? "bg-[#078f7b]" : "bg-[#0E7F7F] hover:bg-[#078f7b]"
-            }`
-          }
-        >
-          Contact Us
-        </NavLink>
-
-        {androidDownloadUrl && (
-          <a
-            href={androidDownloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="hidden rounded-full bg-white px-4 py-2 text-sm font-semibold whitespace-nowrap text-[#129E9E] transition-colors hover:bg-[#FAF6EE] lg:block"
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <NavLink
+            to="/contact"
+            className={({ isActive }) =>
+              `rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors lg:px-5 ${
+                isActive ? "bg-[#078f7b]" : "bg-[#0E7F7F] hover:bg-[#078f7b]"
+              }`
+            }
           >
-            Get Android App
-          </a>
-        )}
+            Contact Us
+          </NavLink>
+          <AndroidDownloadAction compact />
+        </div>
 
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0E7F7F] text-white md:hidden"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-[#0E7F7F] text-white lg:hidden"
           aria-label="Toggle navigation menu"
           aria-expanded={isOpen}
         >
@@ -111,7 +102,7 @@ const NavBar = () => {
       </div>
 
       {isOpen && (
-        <div className="absolute top-[calc(100%+10px)] left-0 w-full rounded-3xl border border-[#129E9E]/30 bg-[#129E9E] p-5 shadow-lg md:hidden">
+        <div className="absolute top-[calc(100%+10px)] left-0 w-full rounded-3xl border border-[#129E9E]/30 bg-[#129E9E] p-5 shadow-lg lg:hidden">
           <div className="flex flex-col gap-4 text-[15px]">
             {navLinks.map((link) => (
               <NavLink
@@ -132,17 +123,7 @@ const NavBar = () => {
             >
               Contact Us
             </NavLink>
-            {androidDownloadUrl && (
-              <a
-                href={androidDownloadUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setIsOpen(false)}
-                className="w-full rounded-full bg-white px-5 py-2.5 text-center font-semibold text-[#129E9E] transition-colors hover:bg-[#FAF6EE]"
-              >
-                Download Android App
-              </a>
-            )}
+            <AndroidDownloadAction />
           </div>
         </div>
       )}

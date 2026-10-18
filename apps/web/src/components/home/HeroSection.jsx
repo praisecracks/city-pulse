@@ -15,7 +15,7 @@ export default function HeroSection() {
         <div className="flex flex-col items-start gap-6 lg:col-span-7">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#129E9E]/30 bg-[#FAF6EE] px-4 py-1.5 text-xs font-semibold text-[#129E9E]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#129E9E]" />
-            Launching soon in Abeokuta
+            Launching in Ogun State
           </span>
           {/* uncomment after launch */}
 

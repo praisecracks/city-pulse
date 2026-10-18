@@ -98,8 +98,8 @@ export default function WaitlistForm() {
             </span>
             <p className="text-base text-[#14232B]/70">
               {result === "Resident"
-                ? "Thank you for joining. We'll contact you as soon as City Pulse opens in your area."
-                : "Thank you for applying. A City Pulse field team member will contact you to arrange a visit and verify your business."}
+                ? "Thank you for joining. You're in the priority queue for faster onboarding and updates from our team."
+                : "Thank you for applying. You're in the priority queue for faster business verification and onboarding from our field team."}
             </p>
           </div>
         </div>

@@ -31,9 +31,10 @@ export default function WaitlistHero() {
         </h2>
 
         <p className="text-lg text-[#14232B]/70">
-          Join the waitlist for early access. City Pulse shows what is
-          available near you right now, whether you need a place to stay, food,
-          cooking gas or cash, or you are a provider who wants to be found.
+          The Android app is ready, with public downloads opening soon. The
+          waitlist is for priority review, faster business verification, and
+          quicker onboarding—not because the app is unavailable. Join to get
+          help from our team sooner as we bring City Pulse to Ogun State.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">

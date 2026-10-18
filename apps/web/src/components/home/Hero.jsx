@@ -16,7 +16,7 @@ export default function Hero() {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-[#129E9E]/30 bg-[#FAF6EE] px-4 py-1.5 text-xs font-semibold text-[#129E9E]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#129E9E]" />
-            Launching soon in Abeokuta
+            Launching in Ogun State
           </span>
 
           <h1 className="mt-6 font-[Baloo_2] text-4xl font-bold leading-[1.05] text-[#14232B] sm:text-5xl lg:text-6xl">

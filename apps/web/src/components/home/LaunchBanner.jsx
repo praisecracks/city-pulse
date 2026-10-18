@@ -9,7 +9,7 @@ export default function LaunchBanner() {
             <span className="relative inline-flex h-3 w-3 rounded-full bg-[#FAF6EE]" />
           </span>
           <p className="text-lg font-bold tracking-tight text-[#FAF6EE]">
-            Launching soon in Abeokuta
+            Launching in Ogun State
           </p>
           <p className="max-w-xl text-sm text-[#FAF6EE]/90">
             We're piloting in Abeokuta first. Join the waitlist to be first

@@ -21,7 +21,9 @@ currently using; local and deployed admin credentials may differ.
 The contact page's Android download button uses `VITE_ANDROID_APP_DOWNLOAD_URL`.
 Set it to the public EAS internal-distribution build URL in the production
 environment and rebuild the site after each APK release. iOS availability is
-shown separately.
+shown separately. Android downloads unlock seven hours after the production
+website build starts; the shared countdown is embedded in the build so visitors
+see the same deadline. A new production build starts a new countdown.
 
 Currently, two official plugins are available:
 
