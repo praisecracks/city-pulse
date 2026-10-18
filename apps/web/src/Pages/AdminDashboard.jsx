@@ -15,7 +15,7 @@ const QUICK_ACTIONS = [
   { label: "View Waitlist", href: "/admin-pulse/waitlist", icon: "assignment", color: "bg-[#E4F3F1] text-[#129E9E]" },
   { label: "Check Contacts", href: "/admin-pulse/contacts", icon: "chat", color: "bg-[#F5E3E0] text-[#B5453B]" },
   { label: "Manage Users", href: "/admin-pulse/users", icon: "groups", color: "bg-[#F0EADB] text-[#14232B]" },
-  { label: "Review Listings", href: "/admin-pulse/listings", icon: "fact_check", color: "bg-amber-50 text-amber-700" },
+  { label: "Manage Provider Listings", href: "/admin-pulse/listings", icon: "fact_check", color: "bg-amber-50 text-amber-700" },
   { label: "Analytics", href: "/admin-pulse/analytics", icon: "bar_chart", color: "bg-[#E4F3F1] text-[#0E7F7F]" },
 ];
 

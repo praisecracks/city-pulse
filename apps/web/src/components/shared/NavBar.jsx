@@ -2,6 +2,8 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import Logo from "../../assets/Logo.png";
 
+const androidDownloadUrl = import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL;
+
 const navLinks = [
   { to: "/", label: "Home", end: true },
   { to: "/about", label: "Explore" },
@@ -55,6 +57,17 @@ const NavBar = () => {
         >
           Contact Us
         </NavLink>
+
+        {androidDownloadUrl && (
+          <a
+            href={androidDownloadUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="hidden rounded-full bg-white px-4 py-2 text-sm font-semibold whitespace-nowrap text-[#129E9E] transition-colors hover:bg-[#FAF6EE] lg:block"
+          >
+            Get Android App
+          </a>
+        )}
 
         <button
           type="button"
@@ -119,6 +132,17 @@ const NavBar = () => {
             >
               Contact Us
             </NavLink>
+            {androidDownloadUrl && (
+              <a
+                href={androidDownloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsOpen(false)}
+                className="w-full rounded-full bg-white px-5 py-2.5 text-center font-semibold text-[#129E9E] transition-colors hover:bg-[#FAF6EE]"
+              >
+                Download Android App
+              </a>
+            )}
           </div>
         </div>
       )}

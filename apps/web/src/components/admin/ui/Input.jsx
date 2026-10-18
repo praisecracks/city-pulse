@@ -38,7 +38,7 @@ const Input = forwardRef(({
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#14232B]/50 pointer-events-none">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#14232B]/50">
             {rightIcon}
           </div>
         )}

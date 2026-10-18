@@ -14,11 +14,32 @@ function authHeaders(token) {
 }
 
 async function request(path, { token, ...opts } = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: authHeaders(token),
-    ...opts,
-  });
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      headers: authHeaders(token),
+      ...opts,
+    });
+  } catch {
+    throw new Error("Cannot reach the City Pulse API. Check that the backend is running and that VITE_API_PROXY_TARGET points to its port.");
+  }
+
+  if ([502, 503, 504].includes(res.status)) {
+    throw new Error(
+      API_BASE.startsWith("/")
+        ? "The local Vite proxy cannot reach the backend. Start it and confirm VITE_API_PROXY_TARGET matches its port."
+        : "The API host cannot reach its backend service. Check the deployed API service and try again.",
+    );
+  }
+
+  const body = await res.text();
+  let data;
+  try {
+    data = body ? JSON.parse(body) : {};
+  } catch {
+    throw new Error(`The API returned an unreadable response (${res.status}).`);
+  }
+
   if (!res.ok) {
     throw new Error(data.message || `Request failed: ${res.status}`);
   }
@@ -41,8 +62,8 @@ export const adminApi = {
     request(`/admin-pulse/contacts?page=${page}&limit=${limit}`, { token }),
   users: (token, page = 1, limit = 50) =>
     request(`/admin-pulse/users?page=${page}&limit=${limit}`, { token }),
-  pendingListings: (token, page = 1, limit = 20) =>
-    request(`/admin-pulse/listings?page=${page}&limit=${limit}`, { token }),
+  listings: (token, page = 1, limit = 20, reviewStatus = "pending_review") =>
+    request(`/admin-pulse/listings?page=${page}&limit=${limit}&reviewStatus=${encodeURIComponent(reviewStatus)}`, { token }),
   reviewListing: (token, listingId, reviewStatus, note) =>
     request(`/admin-pulse/listings/${encodeURIComponent(listingId)}/review`, {
       token,

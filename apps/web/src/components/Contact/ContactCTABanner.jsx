@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+const androidDownloadUrl = import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL;
+
 export default function ContactCTABanner() {
   return (
     <section className="mx-auto w-full max-w-[1240px] px-6 pb-12 lg:px-8">
@@ -26,54 +28,48 @@ export default function ContactCTABanner() {
           >
             Join Waitlist
           </Link>
-          <button
-            type="button"
-            disabled
-            className="w-full cursor-not-allowed rounded-full bg-[#0E7F7F]/30 px-7 py-3.5 text-center text-sm font-semibold text-[#FAF6EE]/60 sm:w-auto"
-          >
-            <span className="flex items-center justify-center gap-2">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <rect
-                  x="4"
-                  y="10"
-                  width="16"
-                  height="10"
-                  rx="2"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M8 10V6a4 4 0 0 1 8 0v4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <circle
-                  cx="12"
-                  cy="13"
-                  r="2"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="12"
-                  y1="13"
-                  x2="12"
-                  y2="15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Coming Soon
+          {androidDownloadUrl ? (
+            <a
+              href={androidDownloadUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full rounded-full bg-white px-7 py-3.5 text-center text-sm font-semibold text-[#129E9E] shadow-sm transition-all hover:bg-[#FAF6EE] sm:w-auto"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="5"
+                    y="2"
+                    width="14"
+                    height="20"
+                    rx="3"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M10 18h4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Download Android App
+              </span>
+            </a>
+          ) : (
+            <span className="w-full rounded-full bg-[#0E7F7F]/30 px-7 py-3.5 text-center text-sm font-semibold text-[#FAF6EE]/80 sm:w-auto">
+              Android download link coming soon
             </span>
-          </button>
+          )}
+          <span className="text-xs font-medium text-[#FAF6EE]/80">
+            iOS app coming soon
+          </span>
         </div>
       </div>
     </section>

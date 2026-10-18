@@ -1,6 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
 import Logo from "../../assets/logo2.png";
-import { useAuth } from "../../contexts/AuthContext";
 import { Icon } from "../admin/ui";
 
 const NAV_SECTIONS = [
@@ -38,7 +37,7 @@ const NAV_SECTIONS = [
       },
       {
         to: "/admin-pulse/listings",
-        label: "Listing Review",
+        label: "Provider Listings",
         icon: "fact_check",
         badge: null,
       },
