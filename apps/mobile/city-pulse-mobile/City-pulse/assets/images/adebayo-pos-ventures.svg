@@ -1,0 +1,22 @@
+<svg width="800" height="420" viewBox="0 0 800 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="420" fill="#D7F1EC"/>
+  <circle cx="676" cy="84" r="112" fill="#B4E4DB"/>
+  <circle cx="100" cy="350" r="160" fill="#C4EAE3"/>
+  <rect x="112" y="92" width="576" height="260" rx="18" fill="#F8FAF6"/>
+  <path d="M112 138L146 76H654L688 138H112Z" fill="#0C8177"/>
+  <path d="M112 138H688V164C688 179 676 191 661 191H139C124 191 112 179 112 164V138Z" fill="#096C64"/>
+  <path d="M164 76V138M240 76V138M316 76V138M392 76V138M468 76V138M544 76V138M620 76V138" stroke="#8BD1C6" stroke-width="4"/>
+  <rect x="154" y="216" width="194" height="104" rx="12" fill="#E6F5F1"/>
+  <rect x="180" y="242" width="142" height="16" rx="8" fill="#0C8177"/>
+  <rect x="180" y="270" width="104" height="12" rx="6" fill="#8BCDC2"/>
+  <rect x="180" y="294" width="74" height="12" rx="6" fill="#B4E4DB"/>
+  <rect x="402" y="216" width="216" height="136" rx="14" fill="#163B38"/>
+  <rect x="424" y="238" width="172" height="72" rx="8" fill="#A9E2D8"/>
+  <rect x="448" y="255" width="124" height="12" rx="6" fill="#0C8177"/>
+  <circle cx="458" cy="289" r="7" fill="#0C8177"/>
+  <circle cx="486" cy="289" r="7" fill="#0C8177"/>
+  <circle cx="514" cy="289" r="7" fill="#0C8177"/>
+  <circle cx="542" cy="289" r="7" fill="#0C8177"/>
+  <text x="154" y="112" fill="white" font-family="sans-serif" font-size="20" font-weight="700">ADEBAYO POS</text>
+  <text x="400" y="386" fill="#0C8177" font-family="sans-serif" font-size="18" font-weight="700">DISPENSING CASH</text>
+</svg>
