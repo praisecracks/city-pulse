@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
-  const androidAppUnlockAt = "2026-10-19T10:38:57.401Z";
+  const androidAppUnlockAt = "2026-10-21T00:32:38.000Z";
 
   return {
     plugins: [react(), tailwindcss()],
