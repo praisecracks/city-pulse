@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { API_BASE_URL, MOCK_API } from '@/utils/api-config';
+import { MOCK_API } from '@/utils/api-config';
+import { apiRequest, describeError } from '@/utils/api-client';
 import {
   isStrongPassword,
   isValidEmailAddress,
@@ -56,6 +58,7 @@ export default function CreateAccountScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // UI Focus & Validation States
   const [touched, setTouched] = useState({ name: false, email: false, phone: false, password: false, confirmPassword: false });
@@ -104,7 +107,7 @@ export default function CreateAccountScreen() {
     };
   }, [sanitizedName, sanitizedEmail, normalizedPhone, phone, password, confirmPassword]);
 
-  const isFormValid = !errors.name && !errors.email && !errors.phone && !errors.password && !errors.confirmPassword;
+  const isFormValid = !errors.name && !errors.email && !errors.phone && !errors.password && !errors.confirmPassword && acceptedTerms;
 
   // Handlers
   const handleBlur = useCallback((field: keyof typeof touched) => {
@@ -124,40 +127,33 @@ export default function CreateAccountScreen() {
       const sanitizedIntent = sanitizeInput(intent || '');
 
       if (!MOCK_API) {
-        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        await apiRequest('/auth/signup', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             name: sanitizedName,
             email: sanitizedEmail,
             phone: normalizedPhone,
             password,
             intent: sanitizedIntent,
-          }),
+          },
         });
-
-        const payload = (await response.json()) as {
-          success?: boolean;
-          message?: string;
-        };
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Failed to create account. Please try again.');
-        }
       } else {
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       router.replace({
         pathname: '/sign-in',
         params: { id: sanitizedId, intent: sanitizedIntent, justSignedUp: 'true' },
       });
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'An error occurred during account creation. Please try again.');
+    } catch (err: unknown) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage(describeError(err, 'An error occurred during account creation. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [isFormValid, isSubmitting, sanitizedName, sanitizedEmail, normalizedPhone, password, id, intent, MOCK_API]);
+  }, [isFormValid, isSubmitting, sanitizedName, sanitizedEmail, normalizedPhone, password, id, intent]);
 
   return (
     <ThemedView style={styles.screen}>
@@ -338,10 +334,26 @@ export default function CreateAccountScreen() {
               </View>
             </View>
 
-            {/* Password Hint */}
-            <View style={styles.hintContainer}>
-              <ThemedText style={styles.hintText}>
-                Use at least 8 characters with uppercase, lowercase, a number, and a special character.
+            {/* Terms acceptance */}
+            <View style={styles.termsRow}>
+              <Pressable
+                onPress={() => setAcceptedTerms((v) => !v)}
+                style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: acceptedTerms }}
+              >
+                {acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              </Pressable>
+              <ThemedText style={styles.termsText}>
+                I agree to the{' '}
+                <ThemedText style={styles.termsLink} onPress={() => router.push('/terms' as any)}>
+                  Terms of Service
+                </ThemedText>{' '}
+                and{' '}
+                <ThemedText style={styles.termsLink} onPress={() => router.push('/privacy-policy' as any)}>
+                  Privacy Policy
+                </ThemedText>
+                .
               </ThemedText>
             </View>
           </ScrollView>
@@ -500,6 +512,40 @@ const styles = StyleSheet.create({
     right: 16,
     top: 32,
     padding: 4,
+  },
+
+  /* Terms */
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: COLOR_BORDER,
+    backgroundColor: COLOR_CARD,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: COLOR_PRIMARY,
+    borderColor: COLOR_PRIMARY,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: COLOR_TEXT_MUTED,
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: COLOR_PRIMARY,
+    fontWeight: '700',
   },
 
   /* Hint */

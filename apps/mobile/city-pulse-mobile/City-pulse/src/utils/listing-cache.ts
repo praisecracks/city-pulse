@@ -92,6 +92,41 @@ export function getCachedListingSync(accountId?: string | null): Listing | null 
   return belongsTo(memoryCache, accountId) ? memoryCache!.listing : null;
 }
 
+export const PUBLIC_FEED_CACHE_KEY = '@citypulse:publicFeedCache';
+const PUBLIC_FEED_TTL_MS = 5 * 60 * 1000;
+
+export async function savePublicFeedCache(listings: Listing[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      PUBLIC_FEED_CACHE_KEY,
+      JSON.stringify({ listings, cachedAt: Date.now() }),
+    );
+  } catch {
+    // best-effort
+  }
+}
+
+export async function loadPublicFeedCache(): Promise<{ listings: Listing[]; fresh: boolean } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PUBLIC_FEED_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { listings: Listing[]; cachedAt: number };
+    if (!Array.isArray(parsed.listings)) return null;
+    const fresh = Date.now() - parsed.cachedAt < PUBLIC_FEED_TTL_MS;
+    return { listings: parsed.listings, fresh };
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPublicFeedCache(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(PUBLIC_FEED_CACHE_KEY);
+  } catch {
+    // best-effort
+  }
+}
+
 /** Drops the listing from both caches. */
 export async function clearCachedListing(): Promise<void> {
   memoryCache = null;

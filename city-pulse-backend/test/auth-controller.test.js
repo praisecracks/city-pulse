@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
 const User = require("../src/models/user.model");
-const { signUp, signIn } = require("../src/controllers/auth.controller");
+const { signUp, signIn, updateProfile } = require("../src/controllers/auth.controller");
 
 function createResponse() {
   return {
@@ -99,5 +99,68 @@ test("new accounts remain unverified and can sign in with phone or email", async
   } finally {
     User.findOne = originalFindOne;
     User.create = originalCreate;
+  }
+});
+
+test("profile updates persist valid uploaded avatars and reject untrusted paths", async () => {
+  const originalFindOne = User.findOne;
+  const user = {
+    _id: "user-id",
+    name: "Old Name",
+    email: "user@example.com",
+    phone: "08031234567",
+    avatar: undefined,
+    async save() {},
+  };
+  let lookup;
+
+  try {
+    User.findOne = async (query) => {
+      lookup = query;
+      return null;
+    };
+
+    const saved = await runController(
+      (req, res, next) => updateProfile({ ...req, user }, res, next),
+      { name: " New Name ", phone: "08031234567", avatar: "/uploads/avatar-123.jpg" },
+    );
+
+    assert.equal(saved.statusCode, 200);
+    assert.equal(user.name, "New Name");
+    assert.equal(user.avatar, "/uploads/avatar-123.jpg");
+    assert.equal(saved.body.data.user.avatar, "/uploads/avatar-123.jpg");
+    assert.equal(lookup, undefined);
+
+    const invalid = await runController(
+      (req, res, next) => updateProfile({ ...req, user }, res, next),
+      { avatar: "https://example.com/not-owned.png" },
+    );
+    assert.equal(invalid.statusCode, 400);
+    assert.equal(user.avatar, "/uploads/avatar-123.jpg");
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
+test("profile updates reject a phone number already used by another account", async () => {
+  const originalFindOne = User.findOne;
+  const user = {
+    _id: "user-id",
+    name: "Neighbor",
+    email: "user@example.com",
+    phone: "08031234567",
+    async save() {},
+  };
+
+  try {
+    User.findOne = async () => ({ _id: "other-user" });
+    const response = await runController(
+      (req, res, next) => updateProfile({ ...req, user }, res, next),
+      { phone: "08039876543" },
+    );
+    assert.equal(response.statusCode, 409);
+    assert.equal(user.phone, "08031234567");
+  } finally {
+    User.findOne = originalFindOne;
   }
 });

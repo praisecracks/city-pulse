@@ -1,4 +1,4 @@
-import { apiRequest } from './api-client';
+import { takePendingReads } from './notification-cache';
 import { MOCK_API } from './api-config';
 
 /**
@@ -86,10 +86,6 @@ export async function fetchNotifications(token: string | null): Promise<Notifica
   };
 }
 
-/**
- * Marks one notification read. Throws `ApiError`, so the caller can tell an
- * offline failure (worth queueing) from a server rejection (worth retrying).
- */
 export async function markNotificationRead(id: string, token: string | null): Promise<void> {
   if (MOCK_API) return;
 
@@ -98,6 +94,18 @@ export async function markNotificationRead(id: string, token: string | null): Pr
     body: {},
     token,
   });
+}
+
+/**
+ * Delivers any notification reads that were queued while offline.
+ *
+ * Call this on reconnect (e.g. from a NetInfo listener) so a notification tapped
+ * offline does not snap back to unread on the next successful fetch.
+ */
+export async function flushPendingReads(userId: string, token: string | null): Promise<void> {
+  const { takePendingReads } = await import('./notification-cache');
+  const pending = await takePendingReads(userId);
+  await Promise.allSettled(pending.map((id) => markNotificationRead(id, token)));
 }
 
 export async function markAllNotificationsRead(token: string | null): Promise<void> {

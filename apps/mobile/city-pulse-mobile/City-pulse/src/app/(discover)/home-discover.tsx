@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -16,6 +17,7 @@ import { FeatureInsightCard, type FeatureInsight } from '@/components/feature-in
 import { LocationHeader } from '@/components/location-header';
 import { useAppState } from '@/state/app-state';
 import { API_BASE_URL } from '@/utils/api-config';
+import { apiRequest, describeError } from '@/utils/api-client';
 import { CATEGORIES, type Category, type Listing, CATEGORY_BASELINES } from '@/data/product';
 import { useListings, useSyncedListings, useNearbyListings } from '@/hooks/use-listings';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,10 +26,12 @@ import { resolveDisplayArea } from '@/utils/display-area';
 type CategoryItem = {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
   name: string;
-  count: string;
+  mainLine: string;
   subtext: string;
   badge?: string;
+  badgeTone?: 'demand' | 'trusted' | 'new' | 'available' | 'lowSupply' | 'unavailable';
 };
 
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -35,6 +39,13 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   food: 'restaurant-outline',
   gas: 'flame-outline',
   house: 'home-outline',
+};
+
+const CATEGORY_ICON_COLOR: Record<string, string> = {
+  pos: '#3B82F6',
+  food: '#F59E0B',
+  gas: '#EF4444',
+  house: '#10B981',
 };
 
 type PulseItem = {
@@ -65,8 +76,7 @@ function isDefaultArea(area: string): boolean {
  * the real listings in the selected area instead of hardcoded strings.
  *
  * The badge is a *computed signal*, not decoration:
- * - A category whose listings are mostly `available` and whose supply is thin
- *   earns "High Demand".
+ * - A category with actual available listings and thin supply earns "High Demand".
  * - A category with a strong average trust score earns "Trusted".
  * - A category with a brand-new listing earns "New".
  * - Anything else falls back to its dominant status label.
@@ -97,57 +107,56 @@ function getCategoryStats(area: string, listings: Listing[]): CategoryItem[] {
     const freshest = newestMinutes.length ? Math.min(...newestMinutes) : Infinity;
 
     const icon = CATEGORY_ICON[category] || 'flash';
+    const iconColor = CATEGORY_ICON_COLOR[category] || BRAND_TEAL;
     const label = CATEGORY_META_LABEL(category);
 
     // Global baseline + real listings
     const baseline = CATEGORY_BASELINES[category] ?? 0;
     const total = baseline + realTotal;
 
-    let count: string;
-    let subtext: string;
+    const MAIN_LINES: Record<string, { main: string; sub: string }> = {
+      pos: { main: 'Compare withdrawal fees', sub: 'Find out what cash withdrawal may cost you.' },
+      food: { main: 'Explore menus & prices', sub: 'See available meals and their listed prices.' },
+      gas: { main: 'Compare refill prices', sub: 'Check listed prices before travelling.' },
+      house: { main: 'Explore rent & prices', sub: 'Compare listed property prices and rent.' },
+    };
+    const mainLine = MAIN_LINES[category]?.main ?? 'Explore services';
+    let subtext = MAIN_LINES[category]?.sub ?? '';
+
+    // Badges use real listing signals; catalog baselines must not imply demand or status.
     let badge: string | undefined;
-
-    if (total === 0) {
-      count = '0 Live';
-      subtext = 'No verified providers yet';
-      badge = undefined;
-    } else {
-      count = `${total} Active`;
-      subtext =
-        available > 0
-          ? `${available} open, ${lowSupply} low supply nearby`
-          : lowSupply > 0
-            ? 'Supply is running thin'
-            : 'Check before you leave';
-    }
-
-    // Strategic badge — computed from the data, never hardcoded.
-    if (total > 0) {
-      // Use baseline-inflated numbers for badge logic
-      const inflatedAvailable = available + Math.floor(baseline * 0.7);
-      const inflatedLowSupply = lowSupply + Math.floor(baseline * 0.2);
-      const inflatedUnavailable = unavailable + Math.floor(baseline * 0.1);
-
-      if (inflatedAvailable > 0 && (inflatedLowSupply > 0 || inflatedUnavailable > total / 2)) {
+    let badgeTone: CategoryItem['badgeTone'];
+    if (realTotal > 0) {
+      if (available > 0 && (lowSupply > 0 || unavailable > realTotal / 2)) {
         badge = 'High Demand';
-      } else if (avgTrust >= 4) {
-        badge = 'Trusted';
+        badgeTone = 'demand';
       } else if (freshest <= 5) {
         badge = 'New';
-      } else if (inflatedAvailable > 0) {
-        badge = STATUS_LABEL.available;
-      } else if (inflatedLowSupply > 0) {
+        badgeTone = 'new';
+      } else if (lowSupply > 0) {
         badge = STATUS_LABEL.low_supply;
+        badgeTone = 'lowSupply';
+      } else if (avgTrust >= 4) {
+        badge = 'Trusted';
+        badgeTone = 'trusted';
+      } else if (available > 0) {
+        badge = STATUS_LABEL.available;
+        badgeTone = 'available';
+      } else if (unavailable > 0) {
+        badge = STATUS_LABEL.unavailable;
+        badgeTone = 'unavailable';
       }
     }
 
     return {
       key: category,
       icon,
+      iconColor,
       name: label,
-      count,
+      mainLine,
       subtext,
       badge,
+      badgeTone,
     };
   });
 }
@@ -463,6 +472,14 @@ export default function HomeDiscoverScreen() {
   const { setHasSeenOnboarding, user, customerLocation } = useAppState();
   const theme = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
+  const badgeToneStyles = {
+    demand: { container: styles.cardBadgeDemand, text: styles.cardBadgeTextDemand },
+    trusted: { container: styles.cardBadgeTrusted, text: styles.cardBadgeTextTrusted },
+    new: { container: styles.cardBadgeNew, text: styles.cardBadgeTextNew },
+    available: { container: styles.cardBadgeAvailable, text: styles.cardBadgeTextAvailable },
+    lowSupply: { container: styles.cardBadgeLowSupply, text: styles.cardBadgeTextLowSupply },
+    unavailable: { container: styles.cardBadgeUnavailable, text: styles.cardBadgeTextUnavailable },
+  };
   const isAgent = user?.roles?.includes('agent') ?? false;
 
   const hasGps = customerLocation?.gps?.latitude !== undefined && customerLocation?.gps?.longitude !== undefined;
@@ -474,27 +491,44 @@ export default function HomeDiscoverScreen() {
   // sync runs in the background, so without this the grid showed "0 Live" and
   // the card stayed hidden until the user navigated away and back.
   const allListings = useListings();
-  useSyncedListings();
+  const {
+    errorMessage: listingSyncError,
+    isOffline: listingSyncOffline,
+    refresh: retryListingSync,
+  } = useSyncedListings();
 
   // Geospatial listings when GPS is available
-  const { listings: nearbyListings, isLoading: nearbyLoading, refresh: refreshNearby } = useNearbyListings({
+  const {
+    listings: nearbyListings,
+    error: nearbyError,
+    isOffline: nearbyOffline,
+    refresh: refreshNearby,
+  } = useNearbyListings({
     latitude: gpsLat ?? 0,
     longitude: gpsLng ?? 0,
     radiusMeters: 5000,
     enabled: hasGps,
   });
+  const discoverSyncError = nearbyError ?? listingSyncError;
+  const discoverSyncOffline = nearbyError ? nearbyOffline : listingSyncOffline;
+  const retryDiscoverSync = useCallback(() => {
+    retryListingSync();
+    if (hasGps) refreshNearby();
+  }, [hasGps, refreshNearby, retryListingSync]);
 
-  // Use geospatial listings when GPS available, otherwise fall back to local store
-  const listings = hasGps ? nearbyListings : allListings;
+  // Geospatial results are more precise, but an empty/failed request should
+  // still leave locally available listings visible while the status banner
+  // explains that live data may be stale.
+  const selectedArea = resolveDisplayArea(area, customerLocation?.serviceArea?.name, customerLocation?.label);
+  const listings = hasGps && nearbyListings.length > 0 ? nearbyListings : allListings;
+  const insight = useMemo(() => generateInsight(selectedArea, listings), [selectedArea, listings]);
 
   const [pulses, setPulses] = useState<PulseItem[]>([
     { id: '1', text: '5 POS Agents currently dispensing cash nearby.' },
     { id: '2', text: '2 Gas Plants operating with no waiting queue.' },
   ]);
   const [isFetchingPulses, setIsFetchingPulses] = useState(false);
-  const [insight, setInsight] = useState<FeatureInsight | null>(null);
-
-  const selectedArea = resolveDisplayArea(area, customerLocation?.serviceArea?.name, customerLocation?.label);
+  const [pulseError, setPulseError] = useState<string | null>(null);
 
   const categoryStats = useMemo(
     () => getCategoryStats(selectedArea, listings),
@@ -510,14 +544,10 @@ export default function HomeDiscoverScreen() {
     const loadPulses = async () => {
       setIsFetchingPulses(true);
       try {
-        let url = `${API_BASE_URL}/pulses?location=${encodeURIComponent(selectedArea)}`;
-        // When GPS available, use nearby endpoint for more accurate results
-        if (hasGps && gpsLat !== undefined && gpsLng !== undefined) {
-          url = `${API_BASE_URL}/pulses/nearby?lat=${gpsLat}&lng=${gpsLng}&radius=5000`;
-        }
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to fetch live updates');
-        const payload = await response.json();
+        const path = hasGps && gpsLat !== undefined && gpsLng !== undefined
+          ? `/pulses/nearby?lat=${gpsLat}&lng=${gpsLng}&radius=5000`
+          : `/pulses?location=${encodeURIComponent(selectedArea)}`;
+        const payload = await apiRequest<{ data?: any[] }>(path, { timeoutMs: 10000 });
 
         if (payload?.data && Array.isArray(payload.data) && payload.data.length > 0) {
           const dynamicPulses = payload.data.slice(0, 3).map((item: any, index: number) => ({
@@ -525,29 +555,16 @@ export default function HomeDiscoverScreen() {
             text: item.description || item.title || `${item.name} is currently active.`,
           }));
           setPulses(dynamicPulses);
+          setPulseError(null);
         }
-      } catch {} finally {
+      } catch (err) {
+        setPulseError(describeError(err, 'Could not load live updates.'));
+      } finally {
         setIsFetchingPulses(false);
       }
     };
     loadPulses();
   }, [selectedArea, hasGps, gpsLat, gpsLng]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const timer = setTimeout(() => {
-      const generated = generateInsight(selectedArea, listings);
-      if (isMounted) {
-        setInsight(generated);
-      }
-    }, 250);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [selectedArea, listings]);
 
   const handleCategoryPress = useCallback((categoryKey: string) => {
     router.push(`/category-list?category=${encodeURIComponent(categoryKey)}&area=${encodeURIComponent(selectedArea)}`);
@@ -567,11 +584,40 @@ export default function HomeDiscoverScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={() => {
+                retryListingSync();
+                refreshNearby();
+              }}
+            />
+          }
         >
           <LocationHeader
             showAgentDashboard
             onAgentDashboardPress={() => router.replace('/agent-dashboard')}
           />
+
+          {discoverSyncError && (
+            <View style={[styles.syncBanner, { backgroundColor: theme.warningBg }]}>
+              <Ionicons
+                name={discoverSyncOffline ? 'cloud-offline-outline' : 'refresh-circle-outline'}
+                size={17}
+                color={theme.warningText}
+              />
+              <ThemedText style={[styles.syncBannerText, { color: theme.warningText }]}>
+                {discoverSyncError}
+              </ThemedText>
+              {!discoverSyncOffline && (
+                <Pressable accessibilityRole="button" onPress={retryDiscoverSync}>
+                  <ThemedText style={[styles.syncRetryText, { color: theme.warningText }]}>
+                    Retry
+                  </ThemedText>
+                </Pressable>
+              )}
+            </View>
+          )}
 
           {/* Hero Section */}
           <View style={styles.heroSection}>
@@ -666,7 +712,7 @@ export default function HomeDiscoverScreen() {
                 <Pressable
                   key={category.key}
                   accessibilityRole="button"
-                  accessibilityLabel={`${category.name}, ${category.count}`}
+                  accessibilityLabel={`${category.name}, ${category.mainLine}`}
                   onPress={() => handleCategoryPress(category.key)}
                   style={({ pressed }) => [
                     styles.categoryCard,
@@ -674,8 +720,18 @@ export default function HomeDiscoverScreen() {
                   ]}
                 >
                   {category.badge && (
-                    <View style={styles.cardBadge}>
-                      <ThemedText style={styles.cardBadgeText}>
+                    <View
+                      style={[
+                        styles.cardBadge,
+                        category.badgeTone && badgeToneStyles[category.badgeTone].container,
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.cardBadgeText,
+                          category.badgeTone && badgeToneStyles[category.badgeTone].text,
+                        ]}
+                      >
                         {category.badge}
                       </ThemedText>
                     </View>
@@ -686,20 +742,22 @@ export default function HomeDiscoverScreen() {
                       <Ionicons
                         name={category.icon}
                         size={22}
-                        color={BRAND_TEAL}
+                        color={category.iconColor}
                       />
                     </View>
-                    <Ionicons name="arrow-forward-circle-outline" size={20} color="#CBD5E1" />
                   </View>
 
                   <View style={styles.cardBottom}>
-                    <ThemedText style={styles.categoryName}>
-                      {category.name}
+                    <View style={styles.cardTitleRow}>
+                      <ThemedText numberOfLines={1} style={styles.categoryName}>
+                        {category.name}
+                      </ThemedText>
+                      <Ionicons name="arrow-forward-circle-outline" size={20} color="#CBD5E1" />
+                    </View>
+                    <ThemedText style={styles.categoryMainLine}>
+                      {category.mainLine}
                     </ThemedText>
-                    <ThemedText style={styles.categoryCount}>
-                      {category.count}
-                    </ThemedText>
-                    <ThemedText numberOfLines={1} style={styles.categorySubtext}>
+                    <ThemedText numberOfLines={2} style={styles.categorySubtext}>
                       {category.subtext}
                     </ThemedText>
                   </View>
@@ -907,7 +965,27 @@ const getStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 14,
     },
     featureInsightCard: {
+      marginTop: 8,
       marginBottom: 16,
+    },
+    syncBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 12,
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    syncBannerText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 17,
+    },
+    syncRetryText: {
+      fontSize: 12,
+      fontWeight: '800',
     },
     liveIndicatorPill: {
       flexDirection: 'row',
@@ -1011,25 +1089,66 @@ const getStyles = (theme: ReturnType<typeof useTheme>) =>
       shadowRadius: 8,
       elevation: 2,
     },
-  cardBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: theme.warningBg,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  cardBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: theme.warningText,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    cardBadge: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      backgroundColor: theme.warningBg,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    cardBadgeText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: theme.warningText,
+    },
+    cardBadgeDemand: {
+      backgroundColor: '#FFF7ED',
+    },
+    cardBadgeTextDemand: {
+      color: '#C2410C',
+    },
+    cardBadgeTrusted: {
+      backgroundColor: '#ECFDF5',
+    },
+    cardBadgeTextTrusted: {
+      color: '#047857',
+    },
+    cardBadgeNew: {
+      backgroundColor: '#EFF6FF',
+    },
+    cardBadgeTextNew: {
+      color: '#1D4ED8',
+    },
+    cardBadgeAvailable: {
+      backgroundColor: '#ECFEFF',
+    },
+    cardBadgeTextAvailable: {
+      color: '#0F766E',
+    },
+    cardBadgeLowSupply: {
+      backgroundColor: '#FEF3C7',
+    },
+    cardBadgeTextLowSupply: {
+      color: '#B45309',
+    },
+    cardBadgeUnavailable: {
+      backgroundColor: '#F1F5F9',
+    },
+    cardBadgeTextUnavailable: {
+      color: '#475569',
+    },
+    cardTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    cardTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
   categoryIconCircle: {
     width: 40,
     height: 40,
@@ -1042,12 +1161,13 @@ const getStyles = (theme: ReturnType<typeof useTheme>) =>
     marginTop: 12,
   },
   categoryName: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: theme.textBody,
   },
-  categoryCount: {
-    fontSize: 12,
+  categoryMainLine: {
+    fontSize: 13,
     fontWeight: '700',
     color: BRAND_TEAL,
     marginTop: 2,

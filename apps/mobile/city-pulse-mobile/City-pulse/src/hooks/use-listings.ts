@@ -3,9 +3,11 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { getAllListings, getListing, subscribeToListings, type Listing } from '@/data/product';
+import { describeError, isOfflineError } from '@/utils/api-client';
 import {
   fetchMyListing,
   fetchNearbyListings,
+  getListingSyncFailure,
   resubmitListingForReview,
   setListingVisibility,
   syncListings,
@@ -21,8 +23,11 @@ import {
 
 export type ListingsSyncState = {
   isSyncing: boolean;
-  /** True only when a sync failed and there is no live data to fall back on. */
+  /** True when the latest live-listing request failed; local listings remain visible. */
   hasError: boolean;
+  isOffline: boolean;
+  errorMessage: string | null;
+  refresh: () => void;
 };
 
 /**
@@ -53,27 +58,49 @@ export function useSyncedListings(options?: {
   const { refresh, enabled = true } = options || {};
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
 
-    (async () => {
+    const sync = async () => {
       setIsSyncing(true);
       try {
-        const listings = await syncListings();
-        if (active) setHasError(listings.length === 0);
+        await syncListings();
+        if (active) {
+          const failure = getListingSyncFailure();
+          setHasError(Boolean(failure));
+          setIsOffline(failure?.isOffline ?? false);
+          setErrorMessage(failure?.message ?? null);
+        }
       } finally {
         if (active) setIsSyncing(false);
       }
-    })();
+    };
+
+    void sync();
+    let wasOffline = false;
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected === false) {
+        wasOffline = true;
+      } else if (state.isConnected === true && wasOffline) {
+        wasOffline = false;
+        void sync();
+      }
+    });
 
     return () => {
       active = false;
+      unsubscribe();
     };
-  }, [enabled, refresh]);
+  }, [enabled, refresh, retryCount]);
 
-  return { isSyncing, hasError };
+  const retry = useCallback(() => setRetryCount((count) => count + 1), []);
+
+  return { isSyncing, hasError, isOffline, errorMessage, refresh: retry };
 }
 
 /**
@@ -90,6 +117,7 @@ export interface NearbyListingsState {
   listings: Listing[];
   isLoading: boolean;
   error: string | null;
+  isOffline: boolean;
   refresh: () => void;
 }
 
@@ -109,11 +137,14 @@ export function useNearbyListings(
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const latestRequest = useRef(0);
 
   const load = useCallback(async () => {
     if (!enabled || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       setListings([]);
+      setError(null);
+      setIsOffline(false);
       return;
     }
 
@@ -132,16 +163,20 @@ export function useNearbyListings(
       });
       if (requestId !== latestRequest.current) return;
       setListings(results);
+      setError(null);
+      setIsOffline(false);
     } catch (err) {
       if (requestId !== latestRequest.current) return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch nearby listings');
-      setListings([]);
+      setError(describeError(err, 'Could not refresh nearby listings.'));
+      setIsOffline(isOfflineError(err));
     } finally {
       if (requestId === latestRequest.current) setIsLoading(false);
     }
   }, [enabled, latitude, longitude, radiusMeters, category, status]);
 
   useEffect(() => {
+    // The effect starts a bounded network request and updates loading state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -150,7 +185,7 @@ export function useNearbyListings(
     load();
   }, [load]);
 
-  return { listings, isLoading, error, refresh };
+  return { listings, isLoading, error, isOffline, refresh };
 }
 
 export type MyListingState = {
@@ -299,9 +334,9 @@ export function useMyListing(
     } catch (err) {
       if (requestId !== latestRequest.current) return;
 
-      const message = err instanceof Error ? err.message : 'Unable to load your listing.';
+      const message = describeError(err, 'Unable to load your listing.');
       setError(message);
-      setIsOffline(true);
+      setIsOffline(isOfflineError(err));
       // Deliberately leave the existing listing (from cache) in state so the
       // screen keeps showing usable data instead of going blank.
     } finally {
@@ -351,10 +386,13 @@ export function useMyListing(
         const updated = await updateListingStatus(listing.id, pulseStatus, token ?? null);
         setListing(updated);
         void saveCachedListing(updated, accountId ?? null);
+        setError(null);
+        setIsOffline(false);
         return true;
       } catch (err) {
         setListing(previous);
-        setError(err instanceof Error ? err.message : 'Unable to update your status.');
+        setError(describeError(err, 'Unable to update your status.'));
+        setIsOffline(isOfflineError(err));
         return false;
       } finally {
         setIsSyncing(false);
@@ -382,11 +420,13 @@ export function useMyListing(
         // rebuilt, and it must be a forced sync: a shared one could be a
         // response issued before the hide and would put the listing back.
         await syncListings({ force: true });
+        setError(null);
+        setIsOffline(false);
         return null;
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Unable to update your listing visibility.';
+        const message = describeError(err, 'Unable to update your listing visibility.');
         setError(message);
+        setIsOffline(isOfflineError(err));
         return message;
       } finally {
         setIsSyncing(false);
@@ -403,10 +443,13 @@ export function useMyListing(
       const updated = await resubmitListingForReview(listing.id, token ?? null);
       setListing(updated);
       void saveCachedListing(updated, accountId ?? null);
+      setError(null);
+      setIsOffline(false);
       return null;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to resubmit your listing.';
+      const message = describeError(err, 'Unable to resubmit your listing.');
       setError(message);
+      setIsOffline(isOfflineError(err));
       return message;
     } finally {
       setIsSyncing(false);

@@ -15,7 +15,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CATEGORY_META, Category } from '@/data/product';
 import { useAppState } from '@/state/app-state';
-import { API_BASE_URL, MOCK_API } from '@/utils/api-config';
+import { MOCK_API } from '@/utils/api-config';
+import { ApiError, apiRequest, describeError } from '@/utils/api-client';
 import { uploadListingPhotos } from '@/utils/listing-photos';
 
 /**
@@ -137,52 +138,46 @@ export default function AgentReviewScreen() {
           throw new Error('One of your photos failed to upload. Please check your connection and retry.');
         }
 
-        const response = await fetch(`${API_BASE_URL}/pulses`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            title: agentDraft.businessName,
-            description: formatDetails(agentDraft.serviceDetails),
-            location: `${agentDraft.area}, ${agentDraft.localGovernment}, Ogun State`,
-            localGovernment: agentDraft.localGovernment,
-            address: agentDraft.address,
-            category: agentDraft.category,
-            contactPhone: agentDraft.phone,
-            email: agentDraft.email,
-            whatsapp: agentDraft.whatsapp,
-            latitude: agentDraft.latitude,
-            longitude: agentDraft.longitude,
-            accuracy: agentDraft.accuracy,
-            source: agentDraft.source || (agentDraft.latitude ? 'gps' : 'manual'),
-            details: agentDraft.serviceDetails,
-            images,
-          }),
-        });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
+        let payload: { roles?: unknown };
+        try {
+          payload = await apiRequest<{ roles?: unknown }>('/pulses', {
+            method: 'POST',
+            token,
+            body: {
+              title: agentDraft.businessName,
+              description: formatDetails(agentDraft.serviceDetails),
+              location: `${agentDraft.area}, ${agentDraft.localGovernment}, Ogun State`,
+              localGovernment: agentDraft.localGovernment,
+              address: agentDraft.address,
+              category: agentDraft.category,
+              contactPhone: agentDraft.phone,
+              email: agentDraft.email,
+              whatsapp: agentDraft.whatsapp,
+              latitude: agentDraft.latitude,
+              longitude: agentDraft.longitude,
+              accuracy: agentDraft.accuracy,
+              source: agentDraft.source || (agentDraft.latitude ? 'gps' : 'manual'),
+              details: agentDraft.serviceDetails,
+              images,
+            },
+          });
+        } catch (error) {
           // A 409 means this account already has a live listing — the
           // registration is finished, not broken. Retrying is impossible (the
           // unique index will reject every attempt), so the only useful thing to
           // do is stop asking them to submit and take them where their listing
           // actually is. Throwing a plain error here left the user on a page
           // telling them to open a dashboard they had no way to reach.
-          if (response.status === 409) {
+          if (error instanceof ApiError && error.status === 409) {
             // Mirror the success path: adopt the roles the server already granted
             // and clear the draft, so a reload can no longer interpret this
             // finished registration as an in-progress one.
-            if (Array.isArray(payload.roles)) {
-              updateUser({ roles: payload.roles });
-            } else {
-              updateUser({ roles: [...(user?.roles ?? []), 'agent'] });
-            }
+            updateUser({ roles: [...new Set([...(user?.roles ?? []), 'agent'])] });
             resetAgentDraft();
             setAlreadyPublished(true);
             return;
           }
-          throw new Error(payload.message || 'Unable to submit your listing for review.');
+          throw error;
         }
 
         if (Array.isArray(payload.roles)) {
@@ -202,9 +197,15 @@ export default function AgentReviewScreen() {
       // success page can display it even after the draft is cleared.
       const businessName = encodeURIComponent(agentDraft.businessName || '');
       router.replace(`/agent-success?businessName=${businessName}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErrorMessage(
-        err?.message || 'Failed to submit registration. Please check your network and try again.'
+        err instanceof ApiError
+          ? describeError(err, 'Failed to submit registration. Please try again.')
+          : err instanceof TypeError
+            ? "You're offline. Check your connection and try again."
+            : err instanceof Error
+              ? err.message
+              : 'Failed to submit registration. Please try again.',
       );
     } finally {
       setIsSubmitting(false);

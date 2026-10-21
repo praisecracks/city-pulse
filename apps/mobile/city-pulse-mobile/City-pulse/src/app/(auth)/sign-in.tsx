@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { API_BASE_URL, MOCK_API } from '@/utils/api-config';
+import { MOCK_API, resolveApiAssetUrl } from '@/utils/api-config';
+import { apiRequest, describeError } from '@/utils/api-client';
 import {
   isValidEmailAddress,
   isValidNigerianPhoneNumber,
@@ -80,7 +82,7 @@ export default function SignInScreen() {
           ? 'Password is required.'
           : null,
     };
-  }, [sanitizedIdentifier, identifier, normalizedIdentifier, isPhone, password]);
+  }, [sanitizedIdentifier, identifier, isPhone, password]);
 
   const canContinue = !errors.identifier && !errors.password;
 
@@ -109,24 +111,23 @@ export default function SignInScreen() {
           phone: isPhone ? normalizedIdentifier : '08031234567',
           otpVerified: false,
           isVerified: false,
-          roles: sanitizedIntent === 'agent' ? ['customer', 'agent'] : ['customer'],
-          agentIntent: sanitizedIntent === 'agent',
+          roles: ['customer'],
+          agentIntent: false,
           trustScore: 3,
           badges: [],
           businessProfileVisibility: 'public',
         };
         token = 'mock-token-' + Date.now();
       } else {
-        const response = await fetch(`${API_BASE_URL}/auth/signin`, {
+        const payload = await apiRequest<{
+          data?: { user?: Record<string, any>; token?: string };
+        }>('/auth/signin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: normalizedIdentifier, password }),
+          body: { identifier: normalizedIdentifier, password },
         });
 
-        const payload = (await response.json()) as { success?: boolean; message?: string; data?: any };
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Invalid credentials. Please try again.');
+        if (!payload.data?.user || !payload.data.token) {
+          throw new Error('Sign-in could not be completed. Please try again.');
         }
 
         backendUser = payload.data.user;
@@ -142,12 +143,15 @@ export default function SignInScreen() {
         token,
         roles: backendUser.roles || ['customer'],
         agentIntent: backendUser.agentIntent ?? false,
+        avatar: backendUser.avatar ? resolveApiAssetUrl(backendUser.avatar) : undefined,
         trustScore: backendUser.trustScore,
         badges: backendUser.badges,
         businessProfileVisibility: backendUser.businessProfileVisibility,
       };
 
       await signIn(authenticatedUser);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       const isProvider = authenticatedUser.roles.includes('agent');
       const isAgentApplicant = !isProvider && authenticatedUser.agentIntent;
@@ -168,12 +172,13 @@ export default function SignInScreen() {
       } else {
         router.replace('/home-discover');
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Invalid credentials. Please try again.');
+    } catch (err: unknown) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage(describeError(err, 'Invalid credentials. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [canContinue, isSubmitting, normalizedIdentifier, isPhone, password, signIn, id, intent, MOCK_API]);
+  }, [canContinue, isSubmitting, normalizedIdentifier, isPhone, password, signIn, id, intent]);
 
   const handleForgotPassword = () => {
     router.push('/forgot-password');

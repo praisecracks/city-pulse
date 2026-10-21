@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { API_BASE_URL, MOCK_API } from '@/utils/api-config';
+import { MOCK_API } from '@/utils/api-config';
+import { apiRequest, describeError } from '@/utils/api-client';
 import { isStrongPassword } from '@/utils/auth-validation';
 
 // Modern Design Tokens
@@ -52,6 +54,7 @@ export default function ResetPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Validation
   const errors = useMemo(() => {
@@ -80,7 +83,30 @@ export default function ResetPasswordScreen() {
 
     if (!isFormValid || isSubmitting) return;
 
-    if (!resetToken) {
+  if (isSuccess) {
+    return (
+      <ThemedView style={styles.screen}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle" size={64} color={COLOR_SUCCESS_TEXT} />
+            <ThemedText style={styles.successTitle}>Password Reset Successful</ThemedText>
+            <ThemedText style={styles.successDescription}>
+              Your password has been updated. You can now sign in with your new password.
+            </ThemedText>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.replace('/sign-in')}
+              style={styles.retryButton}
+            >
+              <ThemedText style={styles.retryButtonText}>Sign In</ThemedText>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
+  if (!resetToken) {
       setErrorMessage('Invalid or missing reset token.');
       return;
     }
@@ -89,36 +115,25 @@ export default function ResetPasswordScreen() {
       setIsSubmitting(true);
 
       if (!MOCK_API) {
-        const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        await apiRequest('/auth/reset-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: resetToken, password }),
+          body: { token: resetToken, password },
         });
-
-        const payload = (await response.json()) as {
-          success?: boolean;
-          message?: string;
-        };
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Failed to reset password. Please try again.');
-        }
       } else {
         await new Promise((resolve) => setTimeout(resolve, 300));
         console.log('[MOCK] Password reset successful');
       }
 
-      setSuccessMessage('Password reset successful. Redirecting to sign in...');
-
-      setTimeout(() => {
-        router.replace('/sign-in');
-      }, 1500);
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to reset password. Please try again.');
+      setSuccessMessage('Password reset successful. You can now sign in with your new password.');
+      setIsSuccess(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: unknown) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage(describeError(err, 'Failed to reset password. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [isFormValid, isSubmitting, password, confirmPassword, resetToken, MOCK_API]);
+  }, [isFormValid, isSubmitting, password, resetToken]);
 
   if (!resetToken) {
     return (
@@ -461,6 +476,27 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+
+  /* Success State */
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLOR_TEXT_MAIN,
+    textAlign: 'center',
+  },
+  successDescription: {
+    fontSize: 14,
+    color: COLOR_TEXT_MUTED,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 
   /* Error State */

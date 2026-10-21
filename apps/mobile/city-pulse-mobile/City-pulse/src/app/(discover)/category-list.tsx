@@ -47,7 +47,6 @@ type RankedListing = Listing & {
 export default function CategoryListScreen() {
   const { category, area } = useLocalSearchParams<{ category?: string; area?: string }>();
   const { customerLocation, favorites, toggleFavorite, user } = useAppState();
-  const [refreshToken, setRefreshToken] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'nearby'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -58,16 +57,29 @@ export default function CategoryListScreen() {
   // Seed data keeps the feed populated offline; the sync layers live listings
   // (with their uploaded photos) on top of it.
   const allSeedAndLive = useListings();
-  const { isSyncing } = useSyncedListings({ refresh: refreshToken });
+  const {
+    isSyncing,
+    errorMessage: listingSyncError,
+    isOffline: listingSyncOffline,
+    refresh: retryListingSync,
+  } = useSyncedListings();
 
   // Geospatial listings when GPS is available
-  const { listings: nearbyListings, isLoading: nearbyLoading, refresh: refreshNearby } = useNearbyListings({
+  const {
+    listings: nearbyListings,
+    isLoading: nearbyLoading,
+    error: nearbyError,
+    isOffline: nearbyOffline,
+    refresh: refreshNearby,
+  } = useNearbyListings({
     latitude: gpsLat ?? 0,
     longitude: gpsLng ?? 0,
     radiusMeters: 5000,
     category: category || undefined,
     enabled: hasGps,
   });
+  const listingError = nearbyError ?? listingSyncError;
+  const listingOffline = nearbyError ? nearbyOffline : listingSyncOffline;
 
   const urlCategory = category ? (category as Category) : null;
   const [activeCategory, setActiveCategory] = useState<Category | null>(() => urlCategory);
@@ -146,13 +158,12 @@ export default function CategoryListScreen() {
   }, [customerLocation, baseListings, activeCategory, searchQuery, selectedFilter, hasGps]);
 
   const onRefresh = useCallback(() => {
-    // Bumping the token re-runs the sync effect; isSyncing drives the spinner.
-    setRefreshToken((token) => token + 1);
+    retryListingSync();
     // Also refresh nearby listings if GPS available
     if (hasGps) {
       refreshNearby();
     }
-  }, [hasGps, refreshNearby]);
+  }, [hasGps, refreshNearby, retryListingSync]);
 
   return (
     <ThemedView style={styles.screen}>
@@ -185,6 +196,24 @@ export default function CategoryListScreen() {
             <Ionicons name="filter-outline" size={18} color={COLOR_TEXT_MAIN} />
           </Pressable>
         </View>
+
+        {listingError && (
+          <View style={styles.syncBanner}>
+            <Ionicons
+              name={listingOffline ? 'cloud-offline-outline' : 'refresh-circle-outline'}
+              size={17}
+              color="#92400E"
+            />
+            <ThemedText style={styles.syncBannerText}>
+              {listingError}
+            </ThemedText>
+            {!listingOffline && (
+              <Pressable accessibilityRole="button" onPress={onRefresh}>
+                <ThemedText style={styles.syncRetryText}>Retry</ThemedText>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -295,7 +324,7 @@ export default function CategoryListScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isSyncing}
+              refreshing={isSyncing || nearbyLoading}
               onRefresh={onRefresh}
               tintColor={COLOR_PRIMARY}
               colors={[COLOR_PRIMARY]}
@@ -459,6 +488,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: COLOR_TEXT_MUTED,
+  },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  syncBannerText: {
+    flex: 1,
+    color: '#92400E',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  syncRetryText: {
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   /* Search Bar */

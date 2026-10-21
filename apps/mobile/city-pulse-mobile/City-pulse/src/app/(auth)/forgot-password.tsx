@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { API_BASE_URL, MOCK_API } from '@/utils/api-config';
+import { MOCK_API } from '@/utils/api-config';
+import { apiRequest, describeError } from '@/utils/api-client';
 import { isValidEmailAddress } from '@/utils/auth-validation';
 
 // Modern Design Tokens
@@ -72,20 +74,10 @@ export default function ForgotPasswordScreen() {
       setIsSubmitting(true);
 
       if (!MOCK_API) {
-        const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        await apiRequest('/auth/forgot-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: sanitizedEmail }),
+          body: { email: sanitizedEmail },
         });
-
-        const payload = (await response.json()) as {
-          success?: boolean;
-          message?: string;
-        };
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || 'Failed to send reset link. Please try again.');
-        }
       } else {
         await new Promise((resolve) => setTimeout(resolve, 300));
         console.log(`[MOCK] Password reset link sent to ${sanitizedEmail}`);
@@ -94,12 +86,14 @@ export default function ForgotPasswordScreen() {
       setSuccessMessage('If the email exists, a password reset link has been sent.');
       setEmail('');
       setTouched(false);
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to send reset link. Please try again.');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: unknown) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage(describeError(err, 'Failed to send reset link. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [canSubmit, isSubmitting, sanitizedEmail, MOCK_API]);
+  }, [canSubmit, isSubmitting, sanitizedEmail]);
 
   return (
     <ThemedView style={styles.screen}>

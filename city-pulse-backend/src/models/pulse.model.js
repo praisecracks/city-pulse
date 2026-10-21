@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const locationPointSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+      default: undefined,
+      validate: {
+        validator: function (v) {
+          return Array.isArray(v) && v.length === 2 &&
+            Number.isFinite(v[0]) && v[0] >= -180 && v[0] <= 180 &&
+            Number.isFinite(v[1]) && v[1] >= -90 && v[1] <= 90;
+        },
+        message: "GeoJSON coordinates must be [longitude, latitude] within valid ranges",
+      },
+    },
+  },
+  { _id: false },
+);
+
 // A listing represents a provider's business entry on City Pulse
 // (e.g. a POS agent, food vendor, gas refill point, house agent).
 const pulseSchema = new mongoose.Schema(
@@ -101,24 +125,7 @@ const pulseSchema = new mongoose.Schema(
       accuracy: { type: Number },
       source: { type: String, enum: ["gps", "manual"], default: "manual" },
     },
-    locationPoint: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        validate: {
-          validator: function (v) {
-            return !v || (Array.isArray(v) && v.length === 2 &&
-              Number.isFinite(v[0]) && v[0] >= -180 && v[0] <= 180 &&
-              Number.isFinite(v[1]) && v[1] >= -90 && v[1] <= 90);
-          },
-          message: "GeoJSON coordinates must be [longitude, latitude] within valid ranges",
-        },
-      },
-    },
+    locationPoint: { type: locationPointSchema, default: undefined },
     // `location` holds the neighborhood, while state and localGovernment hold
     // the provider's fixed Ogun State service region. Exact coordinates, when
     // supplied, are stored separately for distance calculations.

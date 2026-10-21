@@ -31,6 +31,11 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    avatar: {
+      type: String,
+      default: undefined,
+      match: [/^\/uploads\/[A-Za-z0-9._-]+$/, "Avatar must be an uploaded image path"],
+    },
     password: {
       type: String,
       required: [true, "Password is required"],

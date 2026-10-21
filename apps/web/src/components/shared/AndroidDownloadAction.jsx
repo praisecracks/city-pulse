@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { trackEvent } from "@/utils/analytics";
 
 const androidDownloadUrl = import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL;
 const unlockAt = new Date(
@@ -42,6 +43,7 @@ export default function AndroidDownloadAction({ compact = false }) {
         href={androidDownloadUrl}
         target="_blank"
         rel="noreferrer"
+        onClick={() => trackEvent("android_download_click")}
         className={buttonClass}
       >
         Download Android App

@@ -57,30 +57,11 @@ export default function AgentDashboardScreen() {
 
   // Ticks so the freshness countdown is live instead of frozen at mount.
   const [now, setNow] = useState(() => Date.now());
-  const [skeletonExceeded, setSkeletonExceeded] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(timer);
   }, []);
-
-  // The skeleton is the first-load state; the plain spinner is only the "this is
-  // taking unusually long" fallback. The flag is cleared once a load settles so
-  // the next first-load starts on the skeleton again instead of inheriting the
-  // previous load's timeout.
-  useEffect(() => {
-    if (!isLoading) {
-      // Clearing the flag here is what stops a later first-load from
-      // inheriting the previous load's timeout and opening on the spinner
-      // instead of the skeleton. It is a real state change rather than a
-      // render cascade, which the rule cannot tell apart from one.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSkeletonExceeded(false);
-      return;
-    }
-    const timer = setTimeout(() => setSkeletonExceeded(true), 2500);
-    return () => clearTimeout(timer);
-  }, [isLoading]);
 
   const category = listing?.category;
   const categoryMeta = category ? CATEGORY_META[category] : undefined;
@@ -130,17 +111,6 @@ export default function AgentDashboardScreen() {
   }
 
   if (isLoading) {
-    if (skeletonExceeded) {
-      return (
-        <View style={[styles.root, { backgroundColor: theme.background }]}>
-          <SafeAreaView edges={['top']} style={[styles.safeArea, styles.loadingState]}>
-            <ActivityIndicator size="large" color={theme.accent} />
-            <ThemedText style={[styles.loadingText, { color: theme.textSecondary }]}>Loading your listing…</ThemedText>
-          </SafeAreaView>
-        </View>
-      );
-    }
-
     return <AgentDashboardSkeleton />;
   }
 

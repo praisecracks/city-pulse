@@ -29,7 +29,7 @@ export const API_BASE_URL: string =
 
 export const API_TIMEOUT_MS = 15000;
 
-export const MOCK_API = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';
+export const MOCK_API = __DEV__ && process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';
 
 /**
  * Google Maps / Places API keys.
@@ -97,6 +97,6 @@ const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
  */
 export function resolveApiAssetUrl(path: string): string {
   if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^[a-z][a-z\d+.-]*:/i.test(path)) return path;
   return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
 }

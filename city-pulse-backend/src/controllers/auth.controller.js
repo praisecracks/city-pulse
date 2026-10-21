@@ -140,6 +140,7 @@ async function signIn(req, res, next) {
           name: user.name,
           email: user.email,
           phone: user.phone,
+          avatar: user.avatar || null,
           otpVerified: user.otpVerified,
           isVerified: user.isVerified,
           roles: user.roles,
@@ -263,6 +264,7 @@ async function getMe(req, res, next) {
           name: user.name,
           email: user.email,
           phone: user.phone,
+          avatar: user.avatar || null,
           otpVerified: user.otpVerified,
           isVerified: user.isVerified,
           roles: user.roles,
@@ -277,6 +279,70 @@ async function getMe(req, res, next) {
       },
     });
   } catch (err) {
+    next(err);
+  }
+}
+
+async function updateProfile(req, res, next) {
+  try {
+    const user = req.user;
+    const updates = {};
+    const body = req.body || {};
+
+    if (Object.hasOwn(body, "name")) {
+      if (typeof body.name !== "string" || !body.name.trim() || body.name.trim().length > 50) {
+        return res.status(400).json({ success: false, message: "Enter a name between 1 and 50 characters" });
+      }
+      updates.name = body.name.trim();
+    }
+
+    if (Object.hasOwn(body, "phone")) {
+      const phone = normalizePhone(body.phone);
+      if (!phone) {
+        return res.status(400).json({ success: false, message: "Enter a valid Nigerian phone number" });
+      }
+      if (phone !== user.phone) {
+        const existingUser = await User.findOne({ phone, _id: { $ne: user._id } });
+        if (existingUser) {
+          return res.status(409).json({ success: false, message: "Phone number already registered" });
+        }
+      }
+      updates.phone = phone;
+    }
+
+    if (Object.hasOwn(body, "avatar")) {
+      if (body.avatar === null || body.avatar === "") {
+        updates.avatar = undefined;
+      } else if (typeof body.avatar === "string" && /^\/uploads\/[A-Za-z0-9._-]+$/.test(body.avatar)) {
+        updates.avatar = body.avatar;
+      } else {
+        return res.status(400).json({ success: false, message: "Choose a valid uploaded profile photo" });
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "No profile changes were provided" });
+    }
+
+    Object.assign(user, updates);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar || null,
+        },
+      },
+    });
+  } catch (err) {
+    if (err?.code === 11000 && err.keyPattern?.phone) {
+      return res.status(409).json({ success: false, message: "Phone number already registered" });
+    }
     next(err);
   }
 }
@@ -327,4 +393,4 @@ async function updateVisibility(req, res, next) {
   }
 }
 
-module.exports = { signUp, signIn, forgotPassword, resetPassword, getMe, deleteAccount, updateVisibility };
+module.exports = { signUp, signIn, forgotPassword, resetPassword, getMe, updateProfile, deleteAccount, updateVisibility };

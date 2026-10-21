@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useListing, useSyncedListings } from '@/hooks/use-listings';
 import { useAppState } from '@/state/app-state';
 import { useTheme } from '@/hooks/use-theme';
+import { describeError } from '@/utils/api-client';
 import {
   REPORT_REASONS,
   type ReportReasonId,
@@ -108,7 +109,7 @@ export default function ReportReasonScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!id || isSubmitting) return;
+    if (!listingId || isSubmitting) return;
 
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -116,12 +117,12 @@ export default function ReportReasonScreen() {
 
     setIsSubmitting(true);
     try {
-      await submitReport(id, selected, note, token);
-      router.replace(`/report-confirmation?id=${encodeURIComponent(id)}`);
+      await submitReport(listingId, selected, note, token);
+      router.replace(`/report-confirmation?id=${encodeURIComponent(listingId)}`);
     } catch (error) {
       Alert.alert(
         'Report not sent',
-        error instanceof Error ? error.message : 'We could not file your report. Please try again.',
+        describeError(error, 'We could not file your report. Please try again.'),
       );
     } finally {
       setIsSubmitting(false);

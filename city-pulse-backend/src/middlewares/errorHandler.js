@@ -4,10 +4,14 @@ const errorHandler = (err, req, res, next) => {
   console.error(err.stack);
 
   const statusCode = err.statusCode || 500;
+  const isServerError = statusCode >= 500;
 
   res.status(statusCode).json({
     success: false,
-    message: err.message || "Something went wrong on the server",
+    message:
+      isServerError && process.env.NODE_ENV !== "development"
+        ? "Something went wrong on the server. Please try again."
+        : err.message || "Something went wrong on the server",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };

@@ -91,10 +91,10 @@ export default function AgentDetailsScreen() {
   const [maxCashLimit, setMaxCashLimit] = useState(savedPos?.maxCashLimit?.toString() || '');
   
   const [acceptedCards, setAcceptedCards] = useState<string[]>(
-    (savedPos as any)?.acceptedCardBrands || ['Transfer', 'Card', 'POS']
+    (savedPos as any)?.acceptedCardBrands || []
   );
   
-  const [menuItems, setMenuItems] = useState(savedFood?.menuItems || [{ name: '', price: 0 }]);
+  const [menuItems, setMenuItems] = useState(savedFood?.menuItems || []);
   const [whatsappOrdering, setWhatsappOrdering] = useState(savedFood?.whatsappOrderingEnabled || false);
   const [foodHomeDelivery, setFoodHomeDelivery] = useState(savedFood?.homeDeliveryEnabled || false);
   const [foodDeliveryCharge, setFoodDeliveryCharge] = useState(savedFood?.deliveryCharge?.toString() || '');

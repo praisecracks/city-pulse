@@ -1,3 +1,4 @@
+import { isAgentOnboardingRoute } from '@/utils/agent-onboarding';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -6,7 +7,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomTabBar } from '@/components/bottom-tab-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppStateProvider, useAppState } from '@/state/app-state';
-import { getAgentResumePath, isAgentOnboardingRoute } from '@/utils/agent-onboarding';
+import { OfflineBanner } from '@/components/offline-banner';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -96,7 +97,10 @@ function RootRedirect() {
 
 function BottomTabBarManager() {
   const pathname = usePathname();
-  const showTabBar = TAB_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '?') || pathname.startsWith(route + '/'));
+  const { user } = useAppState();
+  const showTabBar =
+    !!user &&
+    TAB_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '?') || pathname.startsWith(route + '/'));
 
   if (!showTabBar) return null;
   return <BottomTabBar />;
@@ -107,6 +111,7 @@ function AppContent() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
+      <OfflineBanner />
       <RootRedirect />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
       <BottomTabBarManager />

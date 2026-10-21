@@ -67,10 +67,35 @@ test("provider submissions are pending review regardless of client-supplied stat
     assert.equal(created.state, "Ogun State");
     assert.equal(created.localGovernment, "Abeokuta South");
     assert.equal(created.coordinates, undefined);
+    assert.equal(created.locationPoint, undefined);
     assert.deepEqual(user.roles, ["agent"]);
   } finally {
     Pulse.create = originalCreate;
   }
+});
+
+test("manual listings omit GeoJSON while listings with coordinates get a valid Point", () => {
+  const manual = new Pulse({
+    title: "Manual listing",
+    location: "Ibara, Abeokuta South, Ogun State",
+    category: "food",
+    details: { menuItems: [] },
+    agent: "64d9280b6447f5cdaf48c",
+  });
+  assert.equal(manual.locationPoint, undefined);
+
+  const located = new Pulse({
+    title: "Located listing",
+    location: "Ibara, Abeokuta South, Ogun State",
+    category: "food",
+    details: { menuItems: [] },
+    agent: "64d9280b6447f5cdaf48c",
+    locationPoint: { type: "Point", coordinates: [3.4, 6.8] },
+  });
+  assert.deepEqual(located.locationPoint.toObject(), {
+    type: "Point",
+    coordinates: [3.4, 6.8],
+  });
 });
 
 test("provider submissions reject local government areas outside the allowed Ogun list", async () => {

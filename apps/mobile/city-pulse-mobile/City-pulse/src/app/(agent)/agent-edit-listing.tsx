@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { useNavigation, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import {
   processListingImage,
 } from '@/utils/image-upload';
 import { useTheme } from '@/hooks/use-theme';
+import { describeError } from '@/utils/api-client';
 import { CATEGORY_META, type Availability, type Category } from '@/data/product';
 import { getAgentResumePath } from '@/utils/agent-onboarding';
 import { AgentEditListingSkeleton } from '@/components/agent-edit-listing-skeleton';
@@ -218,6 +219,32 @@ export default function AgentEditListingScreen() {
   // would block a photo-only edit if a legacy listing already had details the
   // current rules reject.
   const [detailsDirty, setDetailsDirty] = useState(false);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    return navigation.addListener('beforeRemove', (event) => {
+      event.preventDefault();
+      if (isSaving) {
+        Alert.alert('Save in progress', 'Please wait for the listing update to finish.');
+        return;
+      }
+
+      Alert.alert(
+        'Discard unsaved changes?',
+        'Your listing edits have not been saved. Leave this page and discard them?',
+        [
+          { text: 'Keep editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => navigation.dispatch(event.data.action),
+          },
+        ],
+      );
+    });
+  }, [isDirty, isSaving, navigation]);
 
   // A skeleton that freezes for more than ~2.5s feels broken, so after that
   // threshold we swap in a spinner with a message so the user knows we are
@@ -309,8 +336,10 @@ export default function AgentEditListingScreen() {
       refresh();
       Alert.alert('Success', 'Your listing has been updated.');
       router.back();
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not update your listing.');
+    } catch (err: unknown) {
+      setFormError(
+        `${describeError(err, 'Could not update your listing.')} Your changes are still here; retry when ready.`,
+      );
     } finally {
       setIsSaving(false);
     }

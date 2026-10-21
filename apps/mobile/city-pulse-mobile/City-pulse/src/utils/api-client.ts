@@ -20,16 +20,18 @@ export class ApiError extends Error {
   readonly isOffline: boolean;
   readonly isTimeout: boolean;
   readonly status: number | null;
+  readonly queued: boolean;
 
   constructor(
     message: string,
-    options: { isOffline?: boolean; isTimeout?: boolean; status?: number | null } = {},
+    options: { isOffline?: boolean; isTimeout?: boolean; status?: number | null; queued?: boolean } = {},
   ) {
     super(message);
     this.name = 'ApiError';
     this.isOffline = options.isOffline ?? false;
     this.isTimeout = options.isTimeout ?? false;
     this.status = options.status ?? null;
+    this.queued = options.queued ?? false;
   }
 }
 
@@ -40,6 +42,8 @@ type RequestOptions = {
   /** Overrides the default budget for calls that legitimately take longer. */
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** When true and the request fails while offline, queue it for retry on reconnect. */
+  queueOnOffline?: boolean;
 };
 
 /**
@@ -51,7 +55,7 @@ type RequestOptions = {
  */
 function classify(error: unknown, timedOut: boolean): ApiError {
   if (timedOut) {
-    return new ApiError('The server took too long to respond.', { isOffline: true, isTimeout: true });
+    return new ApiError('The server took too long to respond.', { isOffline: false, isTimeout: true });
   }
   if (error instanceof ApiError) return error;
   if (error instanceof Error && error.name === 'AbortError') {
@@ -61,7 +65,7 @@ function classify(error: unknown, timedOut: boolean): ApiError {
   if (error instanceof TypeError) {
     return new ApiError('Cannot reach City Pulse right now.', { isOffline: true });
   }
-  return new ApiError(error instanceof Error ? error.message : 'Something went wrong.');
+  return new ApiError('Something went wrong. Please try again.');
 }
 
 /**
@@ -75,7 +79,7 @@ export async function apiRequest<T = Record<string, unknown>>(
   options: RequestOptions = {},
 ): Promise<T> {
   if (MOCK_API) {
-    throw new ApiError('This feature is unavailable in this build.', { status: 0 });
+    return { success: true, data: null, message: 'mock' } as unknown as T;
   }
 
   const { method = 'GET', body, token, timeoutMs = API_TIMEOUT_MS } = options;
@@ -111,15 +115,30 @@ export async function apiRequest<T = Record<string, unknown>>(
       // A 5xx is the server's problem, not the user's connectivity, so it is not
       // reported as offline — the UI offers "try again" rather than "you're
       // offline" for these.
-      const message =
-        (payload?.message as string | undefined) ??
-        `Request failed (${response.status}).`;
+      const message = response.status >= 500
+        ? 'The service is temporarily unavailable. Please try again.'
+        : (payload?.message as string | undefined) ?? `Request failed (${response.status}).`;
       throw new ApiError(message, { status: response.status });
     }
 
     return payload as T;
   } catch (error) {
-    throw classify(error, timedOut);
+    const classified = classify(error, timedOut);
+    if (options.queueOnOffline && classified.isOffline && options.method && options.method !== 'GET') {
+      // Lazy import to avoid circular dependency.
+      const { enqueueRequest } = await import('./offline-queue');
+      await enqueueRequest({
+        path,
+        method: options.method,
+        body: options.body,
+        token: options.token ?? null,
+      });
+      throw new ApiError('You are offline. This action will be retried when you reconnect.', {
+        isOffline: true,
+        queued: true,
+      });
+    }
+    throw classified;
   } finally {
     clearTimeout(timeout);
     options.signal?.removeEventListener('abort', onExternalAbort);
@@ -133,6 +152,14 @@ export function isOfflineError(error: unknown): boolean {
 
 /** A short, human sentence for a failed request, safe to show to a user. */
 export function describeError(error: unknown, fallback = 'Something went wrong.'): string {
-  if (error instanceof ApiError) return error.message || fallback;
+  if (error instanceof ApiError) {
+    if (error.isOffline && error.isTimeout) {
+      return 'The request timed out. Check your connection and try again.';
+    }
+    if (error.isOffline) {
+      return "You're offline. Check your connection and try again.";
+    }
+    return error.message || fallback;
+  }
   return fallback;
 }

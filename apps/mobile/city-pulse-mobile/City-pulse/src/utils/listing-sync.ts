@@ -10,10 +10,21 @@ import {
   setRemoteListings,
 } from '@/data/product';
 import { API_BASE_URL, MOCK_API, resolveApiAssetUrl } from './api-config';
-import { subscribeToListings } from '@/data/product';
-import { formatDistance } from './location';
+import { ApiError } from './api-client';
+import { savePublicFeedCache, loadPublicFeedCache } from './listing-cache';
 
 const FETCH_TIMEOUT_MS = 10_000;
+
+export type ListingSyncFailure = {
+  isOffline: boolean;
+  message: string;
+};
+
+let lastSyncFailure: ListingSyncFailure | null = null;
+
+export function getListingSyncFailure(): ListingSyncFailure | null {
+  return lastSyncFailure;
+}
 
 /**
  * The subset of a Pulse a provider may change after publishing.
@@ -62,6 +73,7 @@ export type Pulse = {
 
 type PulsesResponse = {
   success?: boolean;
+  message?: string;
   data?: Pulse[];
 };
 
@@ -222,22 +234,47 @@ export async function syncListings(options?: { force?: boolean }): Promise<Listi
   const request = (async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/pulses`, { signal: controller.signal });
-      const payload = (await response.json()) as PulsesResponse;
+      const payload = (await response.json().catch(() => null)) as PulsesResponse | null;
 
-      if (!response.ok || !payload.success || !Array.isArray(payload.data)) {
+      if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+        lastSyncFailure = {
+          isOffline: false,
+          message: "Couldn't refresh live listings. Showing the listings currently available.",
+        };
         return getAllListings();
       }
 
-      const listings = payload.data
-        .map(pulseToListing)
-        .filter((listing): listing is Listing => listing !== null);
+       const listings = payload.data
+         .map(pulseToListing)
+         .filter((listing): listing is Listing => listing !== null);
 
-      setRemoteListings(listings);
-      return getAllListings();
-    } catch {
-      // The seed data keeps the feed usable when the API is unreachable.
-      return getAllListings();
-    } finally {
+       setRemoteListings(listings);
+       void savePublicFeedCache(listings);
+       lastSyncFailure = null;
+       return getAllListings();
+     } catch (error) {
+       // Try to serve cached feed before falling back to seed data.
+       const cached = await loadPublicFeedCache();
+       if (cached && cached.listings.length > 0) {
+         setRemoteListings(cached.listings);
+         lastSyncFailure = {
+           isOffline: true,
+           message: "You're offline. Showing cached listings.",
+         };
+         return getAllListings();
+       }
+       // The seed data keeps the feed usable when the API is unreachable.
+       const isOffline =
+         error instanceof TypeError ||
+         (error instanceof Error && error.name === 'AbortError');
+       lastSyncFailure = {
+         isOffline,
+         message: isOffline
+           ? "You're offline. Live listings may be missing or out of date."
+           : "Couldn't refresh live listings. Showing the listings currently available.",
+       };
+       return getAllListings();
+     } finally {
       clearTimeout(timeout);
     }
   })();
@@ -294,28 +331,20 @@ export async function fetchNearbyListings(
     statuses.forEach((s) => params.append('status', s));
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const response = await requestWithTimeout(
+    `${API_BASE_URL}/pulses/nearby?${params}`,
+    {},
+  );
+  const payload = (await response.json().catch(() => null)) as PulsesResponse | null;
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/pulses/nearby?${params}`, {
-      signal: controller.signal,
-    });
-    const payload = (await response.json()) as PulsesResponse;
-
-    if (!response.ok || !payload.success || !Array.isArray(payload.data)) {
-      return [];
-    }
-
-    // The API already returns distanceMeters; pulseToListing will capture it
-    return payload.data
-      .map(pulseToListing)
-      .filter((listing): listing is Listing => listing !== null);
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timeout);
+  if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
+    throw responseError(response, payload?.message, 'Could not refresh nearby listings.');
   }
+
+  // The API already returns distanceMeters; pulseToListing will capture it
+  return payload.data
+    .map(pulseToListing)
+    .filter((listing): listing is Listing => listing !== null);
 }
 
 type PulseEnvelope = {
@@ -330,12 +359,54 @@ async function requestWithTimeout(
   timeoutMs: number = FETCH_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (timedOut || (error instanceof Error && error.name === 'AbortError')) {
+      throw new ApiError('The request timed out. Check your connection and try again.', {
+        isOffline: true,
+        isTimeout: true,
+      });
+    }
+    if (error instanceof TypeError) {
+      const method = (init.method || 'GET').toUpperCase();
+      if (method !== 'GET') {
+        const { enqueueRequest } = await import('./offline-queue');
+        await enqueueRequest({
+          path: url.replace(API_BASE_URL, ''),
+          method,
+          body: init.body ? JSON.parse(init.body as string) : undefined,
+          token: (init.headers as Record<string, string>)?.Authorization?.replace('Bearer ', '') ?? null,
+        });
+        throw new ApiError('You are offline. This action will be retried when you reconnect.', {
+          isOffline: true,
+          queued: true,
+        });
+      }
+      throw new ApiError("You're offline. Check your connection and try again.", { isOffline: true });
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function responseError(
+  response: Response,
+  message: string | undefined,
+  fallback: string,
+): ApiError {
+  return new ApiError(
+    response.status >= 500
+      ? 'The service is temporarily unavailable. Please try again.'
+      : message || fallback,
+    { status: response.status },
+  );
 }
 
 function authHeaders(token: string | null): Record<string, string> {
@@ -367,7 +438,7 @@ export async function fetchMyListing(token: string | null): Promise<Listing | nu
     | null;
 
   if (!response.ok || !payload?.success) {
-    throw new Error(payload?.message || 'Unable to load your listing.');
+    throw responseError(response, payload?.message, 'Unable to load your listing.');
   }
 
   const pulses = Array.isArray(payload.data) ? payload.data : [];
@@ -417,7 +488,7 @@ export async function updatePulse(
   const payload = (await response.json().catch(() => null)) as PulseEnvelope | null;
 
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.message || 'Unable to update your listing.');
+    throw responseError(response, payload?.message, 'Unable to update your listing.');
   }
 
   const listing = pulseToListing(payload.data);
@@ -454,7 +525,7 @@ export async function setListingVisibility(
     | null;
 
   if (!response.ok || !payload?.success) {
-    throw new Error(payload?.message || 'Unable to update your listing visibility.');
+    throw responseError(response, payload?.message, 'Unable to update your listing visibility.');
   }
 }
 
@@ -477,7 +548,7 @@ export async function updateListingStatus(
   const payload = (await response.json().catch(() => null)) as PulseEnvelope | null;
 
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.message || 'Unable to update your status.');
+    throw responseError(response, payload?.message, 'Unable to update your status.');
   }
 
   const listing = pulseToListing(payload.data);
@@ -499,7 +570,7 @@ export async function resubmitListingForReview(
 
   const payload = (await response.json().catch(() => null)) as PulseEnvelope | null;
   if (!response.ok || !payload?.success || !payload.data) {
-    throw new Error(payload?.message || 'Unable to resubmit your listing.');
+    throw responseError(response, payload?.message, 'Unable to resubmit your listing.');
   }
 
   const listing = pulseToListing(payload.data);

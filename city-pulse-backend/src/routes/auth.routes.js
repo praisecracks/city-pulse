@@ -1,7 +1,7 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const router = express.Router();
-const { signUp, signIn, forgotPassword, resetPassword, getMe, deleteAccount, updateVisibility } = require("../controllers/auth.controller");
+const { signUp, signIn, forgotPassword, resetPassword, getMe, updateProfile, deleteAccount, updateVisibility } = require("../controllers/auth.controller");
 const { getFavorites, addFavorite, removeFavorite } = require("../controllers/favorites.controller");
 const auth = require("../middlewares/auth");
 
@@ -19,6 +19,7 @@ router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password", authLimiter, resetPassword);
 
 router.get("/me", auth, getMe);
+router.patch("/me", auth, updateProfile);
 router.delete("/delete-account", auth, deleteAccount);
 router.patch("/me/visibility", auth, updateVisibility);
 

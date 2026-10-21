@@ -18,8 +18,9 @@ import {
   fetchFavoriteIds,
   removeFavoriteRemote,
 } from '@/utils/favorites-api';
-import { clearCachedListing, getCachedListingSync } from '@/utils/listing-cache';
+import { startOfflineQueueListener } from '@/utils/offline-queue';
 import { clearCachedNotifications } from '@/utils/notification-cache';
+import { resolveApiAssetUrl } from '@/utils/api-config';
 
 type User = {
   /**
@@ -273,6 +274,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         const name = text(fresh.name) ?? current.name;
         const email = text(fresh.email) ?? current.email;
         const phone = text(fresh.phone) ?? current.phone;
+        const avatar = Object.prototype.hasOwnProperty.call(fresh, 'avatar')
+          ? (text(fresh.avatar) ? resolveApiAssetUrl(text(fresh.avatar)!) : undefined)
+          : current.avatar;
         const id = text(fresh._id) ?? text(fresh.id) ?? current.id;
         const verified = typeof fresh.isVerified === 'boolean' ? fresh.isVerified : current.verified;
         const trustScore = typeof fresh.trustScore === 'number' ? fresh.trustScore : current.trustScore;
@@ -289,6 +293,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         name !== current.name ||
         email !== current.email ||
         phone !== current.phone ||
+        avatar !== current.avatar ||
         verified !== current.verified ||
         id !== current.id ||
         trustScore !== current.trustScore ||
@@ -297,7 +302,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
       if (!changed) return current;
 
-      const updated: User = { ...current, name, email, phone, verified, roles, agentIntent, id, trustScore, badges, businessProfileVisibility };
+      const updated: User = { ...current, name, email, phone, avatar, verified, roles, agentIntent, id, trustScore, badges, businessProfileVisibility };
         AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated)).catch(() => {});
         return updated;
       });
@@ -492,6 +497,12 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     bootstrapAsync();
   }, []);
 
+  // Start the offline request queue listener so queued writes are retried on reconnect.
+  useEffect(() => {
+    const cleanup = startOfflineQueueListener();
+    return cleanup;
+  }, []);
+
   const setSelectedArea = (area: string) => {
     setSelectedAreaState(area);
     AsyncStorage.setItem(STORAGE_KEYS.SELECTED_AREA, area).catch(() => {});
@@ -620,15 +631,14 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEYS.USER, userJson),
       AsyncStorage.setItem(STORAGE_KEYS.TOKEN, newUser.token),
-      AsyncStorage.setItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING, 'true'),
     ]);
     tokenRef.current = newUser.token;
     userRef.current = newUser;
     setUser(newUser);
     setToken(newUser.token);
-    setHasSeenOnboardingState(true);
-    // Pull the account's saved listings immediately, so the Saved tab is right
-    // on the first visit rather than a refresh later.
+    // Do not force hasSeenOnboarding here — it is hydrated from storage on
+    // mount and should only be set true when the user actually completes
+    // onboarding (via setHasSeenOnboarding).
     void syncFavorites();
   };
 
@@ -647,6 +657,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     // sign-in.
     persistFavorites([]);
     void clearCachedListing();
+    // Clear the agent onboarding draft so the next account on this device does
+    // not inherit the previous user's in-progress registration.
+    resetAgentDraftState();
     // Alerts are account-scoped too, and a report notification is sensitive: it
     // tells one provider that a specific person complained about them. Leaving
     // it on disk would show the next person to use this device who that was.
@@ -662,6 +675,11 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     });
   };
 
+  const resetAgentDraftState = () => {
+    setAgentDraft({});
+    AsyncStorage.removeItem(STORAGE_KEYS.AGENT_DRAFT).catch(() => {});
+  };
+
   const updateAgentDraftState = useCallback((draft: Partial<AgentDraft>) => {
     setAgentDraft((current) => {
       const next = { ...current, ...draft };
@@ -672,10 +690,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  const resetAgentDraftState = useCallback(() => {
-    setAgentDraft({});
-    AsyncStorage.removeItem(STORAGE_KEYS.AGENT_DRAFT).catch(() => {});
-  }, []);
+  const clearPendingReport = useCallback(() => setPendingReportId(null), []);
 
 const value = useMemo<AppState>(
     () => ({
@@ -700,7 +715,7 @@ const value = useMemo<AppState>(
       signIn,
       signOut,
       beginReport: setPendingReportId,
-      clearPendingReport: () => setPendingReportId(null),
+        clearPendingReport: clearPendingReport,
       updateAgentDraft: updateAgentDraftState,
       resetAgentDraft: resetAgentDraftState,
       updateUser,
@@ -728,9 +743,11 @@ const value = useMemo<AppState>(
       setColorScheme,
       signIn,
       signOut,
-      updateAgentDraftState,
-      resetAgentDraftState,
-      toggleFavorite,
+        clearPendingReport,
+        updateAgentDraftState,
+        resetAgentDraftState,
+        clearPendingReport,
+        toggleFavorite,
       syncFavorites,
     ]
   );

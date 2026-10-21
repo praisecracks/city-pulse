@@ -17,6 +17,9 @@ import { Category } from '@/data/product';
 import { fetchMyListing } from '@/utils/listing-sync';
 import { type Listing } from '@/data/product';
 import { useTheme } from '@/hooks/use-theme';
+import { apiRequest, describeError } from '@/utils/api-client';
+import { MOCK_API, resolveApiAssetUrl } from '@/utils/api-config';
+import { uploadListingPhotos } from '@/utils/listing-photos';
 
 // Brand-specific colors that have no theme token equivalent
 const COLOR_WHITE = '#FFFFFF';
@@ -107,7 +110,7 @@ export default function ProfileScreen() {
 
   const displayName = user.name || 'Neighbor';
   const displayPhone = user.phone || 'Not set';
-  const displayAvatar = user.avatar;
+  const displayAvatar = user.avatar ? resolveApiAssetUrl(user.avatar) : undefined;
 
   const isAgent = user.roles?.includes('agent');
   const listing = myListing ?? null;
@@ -182,15 +185,59 @@ export default function ProfileScreen() {
     if (!user) return;
     setIsSaving(true);
     try {
-      updateUser({
-        name: nameInput.trim() || user.name,
-        phone: phoneInput.trim() || user.phone,
-        ...(avatarInput ? { avatar: avatarInput } : {}),
-      });
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      const name = nameInput.trim() || user.name;
+      const phone = phoneInput.trim() || user.phone;
+      const avatarChanged = avatarInput !== (user.avatar || '');
+
+      if (MOCK_API) {
+        updateUser({ name, phone, avatar: avatarInput || undefined });
+      } else {
+        if (!token) throw new Error('Your session has expired. Sign in again to save your profile.');
+
+        let avatar: string | null | undefined;
+        if (avatarChanged) {
+          if (!avatarInput) {
+            avatar = null;
+          } else {
+            const [uploaded] = await uploadListingPhotos(
+              [{ id: 'profile-avatar', uri: avatarInput, caption: '' }],
+              token,
+            );
+            if (!uploaded) throw new Error('Your profile photo could not be uploaded. Please try again.');
+            avatar = uploaded.path;
+          }
+        }
+
+        const payload = await apiRequest<{
+          data?: { user?: { name?: string; phone?: string; avatar?: string } };
+        }>('/auth/me', {
+          method: 'PATCH',
+          token,
+          body: {
+            name,
+            phone,
+            ...(avatarChanged ? { avatar } : {}),
+          },
+        });
+        const savedUser = payload.data?.user;
+        if (!savedUser) throw new Error('Your profile was not saved. Please try again.');
+
+        updateUser({
+          name: savedUser.name || name,
+          phone: savedUser.phone || phone,
+          avatar: savedUser.avatar ? resolveApiAssetUrl(savedUser.avatar) : undefined,
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      Alert.alert(
+        'Unable to save profile',
+        error instanceof Error && error.name !== 'TypeError'
+          ? error.message
+          : describeError(error, 'Please check your connection and try again.'),
+      );
     } finally {
       setIsSaving(false);
-      setIsEditing(false);
     }
   };
 
@@ -580,7 +627,7 @@ export default function ProfileScreen() {
                   style={({ pressed }) => [styles.modalAvatarPreviewBox, pressed && styles.pressed]}
                 >
                   {avatarInput ? (
-                    <Image source={{ uri: avatarInput }} style={styles.avatarImage} contentFit="cover" />
+                    <Image source={{ uri: resolveApiAssetUrl(avatarInput) }} style={styles.avatarImage} contentFit="cover" />
                   ) : (
                     <View style={styles.avatarCircle}>
                       <Ionicons name="person" size={36} color={theme.accent} />
