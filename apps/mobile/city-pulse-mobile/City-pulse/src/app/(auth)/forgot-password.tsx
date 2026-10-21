@@ -50,6 +50,7 @@ export default function ForgotPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   // Validation
   const sanitizedEmail = useMemo(() => sanitizeInput(email).toLowerCase(), [email]);
@@ -72,21 +73,34 @@ export default function ForgotPasswordScreen() {
 
     try {
       setIsSubmitting(true);
+      setStatusMessage('Sending reset link...');
 
-      if (!MOCK_API) {
-        await apiRequest('/auth/forgot-password', {
-          method: 'POST',
-          body: { email: sanitizedEmail },
-        });
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        console.log(`[MOCK] Password reset link sent to ${sanitizedEmail}`);
+      const msgTimer1 = setTimeout(() => setStatusMessage('Server may be starting up, please wait...'), 5000);
+      const msgTimer2 = setTimeout(() => setStatusMessage('Still working on it, almost there...'), 15000);
+      const msgTimer3 = setTimeout(() => setStatusMessage('This is taking longer than usual, hang tight...'), 30000);
+
+      try {
+        if (!MOCK_API) {
+          await apiRequest('/auth/forgot-password', {
+            method: 'POST',
+            body: { email: sanitizedEmail },
+            timeoutMs: 60000,
+          });
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          console.log(`[MOCK] Password reset link sent to ${sanitizedEmail}`);
+        }
+
+        setSuccessMessage('If the email exists, a password reset link has been sent.');
+        setEmail('');
+        setTouched(false);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } finally {
+        clearTimeout(msgTimer1);
+        clearTimeout(msgTimer2);
+        clearTimeout(msgTimer3);
+        setStatusMessage(null);
       }
-
-      setSuccessMessage('If the email exists, a password reset link has been sent.');
-      setEmail('');
-      setTouched(false);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: unknown) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setErrorMessage(describeError(err, 'Failed to send reset link. Please try again.'));
@@ -175,7 +189,13 @@ export default function ForgotPasswordScreen() {
             </View>
           </ScrollView>
 
-          {/* Action Footer */}
+          {/* Status message during long waits */}
+          {statusMessage && (
+            <View style={styles.statusBanner}>
+              <ActivityIndicator size="small" color={COLOR_PRIMARY} />
+              <ThemedText style={styles.statusText}>{statusMessage}</ThemedText>
+            </View>
+          )}}
           <View style={styles.actionGroup}>
             <Pressable
               accessibilityRole="button"
@@ -340,6 +360,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLOR_DANGER_TEXT,
     marginTop: 2,
+  },
+
+  /* Status Banner */
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  statusText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#065F46',
+    fontWeight: '600',
   },
 
   /* Action Buttons */
