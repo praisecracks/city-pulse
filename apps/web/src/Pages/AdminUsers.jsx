@@ -9,10 +9,6 @@ const ROLE_BADGES = {
   admin: { variant: "danger", label: "Admin" },
 };
 
-const SAMPLE_USERS = [
-  { _id: "u1", name: "Adebayo Johnson", email: "adebayo.j@example.com", phone: "0801 111 2222", roles: ["customer"], otpVerified: true, trustScore: 4, agentIntent: false, createdAt: "2024-01-10T08:30:00Z" },
-];
-
 export default function AdminUsers() {
   const { token } = useAuth();
   const [data, setData] = useState([]);
@@ -24,28 +20,36 @@ export default function AdminUsers() {
   const [viewModal, setViewModal] = useState(null);
   const [verifyNote, setVerifyNote] = useState("");
   const [verifyBusy, setVerifyBusy] = useState(false);
-  const [usingSampleData, setUsingSampleData] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await adminApi.users(token, pagination.page, pagination.pageSize);
+      const res = await adminApi.users(token, pagination.page, pagination.pageSize, {
+        role: filters.role,
+        isVerified: filters.verified,
+        search: search,
+      });
       setData(res.data.data);
       setPagination((prev) => ({ ...prev, page: res.data.page, total: res.data.total }));
-      setUsingSampleData(false);
     } catch (err) {
       setError(err.message);
-      setUsingSampleData(true);
-      setData(SAMPLE_USERS);
-      setPagination((prev) => ({ ...prev, total: SAMPLE_USERS.length }));
+      setData([]);
     } finally {
       setLoading(false);
     }
-  }, [token, pagination.page, pagination.pageSize]);
+  }, [token, pagination.page, pagination.pageSize, filters.role, filters.verified, search]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const openDetail = useCallback(async (id) => {
     try {
@@ -57,49 +61,45 @@ export default function AdminUsers() {
     }
   }, [token]);
 
-  const handleVerify = useCallback(async (isVerified) => {
-    if (!viewModal || !viewModal.user) return;
-    setVerifyBusy(true);
-    try {
-      const res = await adminApi.verifyUser(token, viewModal.user._id, isVerified, verifyNote);
-      setViewModal((prev) => (prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev));
-      await fetchData();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setVerifyBusy(false);
-    }
-  }, [token, viewModal, verifyNote, fetchData]);
+  const handleVerify = useCallback((isVerified) => {
+    setConfirmAction({ type: "verify", value: isVerified });
+  }, []);
 
-  const handleBlock = useCallback(async (isBlocked) => {
-    if (!viewModal || !viewModal.user) return;
-    if (!window.confirm(isBlocked ? "Block this user?" : "Unblock this user?")) return;
-    setVerifyBusy(true);
-    try {
-      const res = await adminApi.blockUser(token, viewModal.user._id, isBlocked, verifyNote);
-      setViewModal((prev) => (prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev));
-      await fetchData();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setVerifyBusy(false);
-    }
-  }, [token, viewModal, verifyNote, fetchData]);
+  const handleBlock = useCallback((isBlocked) => {
+    setConfirmAction({ type: "block", value: isBlocked });
+  }, []);
 
-  const handleDelete = useCallback(async () => {
-    if (!viewModal || !viewModal.user) return;
-    if (!window.confirm("Permanently delete this user and their listings?")) return;
+  const handleDelete = useCallback(() => {
+    setConfirmAction({ type: "delete" });
+  }, []);
+
+  const executeConfirm = useCallback(async () => {
+    if (!confirmAction || !viewModal || !viewModal.user) return;
     setVerifyBusy(true);
     try {
-      await adminApi.deleteUser(token, viewModal.user._id);
-      setViewModal(null);
-      await fetchData();
+      if (confirmAction.type === "verify") {
+        const res = await adminApi.verifyUser(token, viewModal.user._id, confirmAction.value, verifyNote);
+        setViewModal((prev) => (prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev));
+        setToast(confirmAction.value ? "User verified" : "User unverified");
+        await fetchData();
+      } else if (confirmAction.type === "block") {
+        const res = await adminApi.blockUser(token, viewModal.user._id, confirmAction.value, verifyNote);
+        setViewModal((prev) => (prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev));
+        setToast(confirmAction.value ? "User blocked" : "User unblocked");
+        await fetchData();
+      } else if (confirmAction.type === "delete") {
+        await adminApi.deleteUser(token, viewModal.user._id);
+        setViewModal(null);
+        setToast("User deleted");
+        await fetchData();
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setVerifyBusy(false);
+      setConfirmAction(null);
     }
-  }, [token, viewModal, fetchData]);
+  }, [confirmAction, token, viewModal, verifyNote, fetchData]);
 
   let processedItems = data;
   if (search) {
@@ -114,7 +114,7 @@ export default function AdminUsers() {
     processedItems = processedItems.filter((item) => (item.roles || []).includes(filters.role));
   }
   if (filters.verified) {
-    processedItems = processedItems.filter((item) => item.otpVerified === (filters.verified === "true"));
+    processedItems = processedItems.filter((item) => item.isVerified === (filters.verified === "true"));
   }
 
   const columns = [
@@ -135,7 +135,16 @@ export default function AdminUsers() {
         {row.agentIntent && <Badge variant="primary" size="xs">Agent Intent</Badge>}
       </div>
     ) },
-    { key: "otpVerified", label: "Verified", render: (v) => (v ? "Verified" : "Unverified") },
+    { key: "isVerified", label: "Verified", render: (v) => (
+      <span className={v ? "text-green-600 font-semibold" : "text-red-500"}>
+        {v ? "✓ Verified" : "Unverified"}
+      </span>
+    ) },
+    { key: "isBlocked", label: "Status", render: (v) => (
+      <span className={v ? "text-red-600 font-semibold" : "text-green-600"}>
+        {v ? "Blocked" : "Active"}
+      </span>
+    ) },
     { key: "trustScore", label: "Trust", render: (v) => (v || 3) + "/5" },
     { key: "createdAt", label: "Joined", render: (v) => new Date(v).toLocaleString() },
     { key: "actions", label: "Actions", render: (_, row) => (
@@ -177,10 +186,7 @@ export default function AdminUsers() {
     <div className="p-4 lg:p-8 space-y-6">
       <div>
         <h1 className="font-[Baloo_2] text-3xl font-bold text-[#14232B]">Mobile Registered Users</h1>
-        <p className="mt-1 text-[#14232B]/60">
-          Users who have signed up.
-          {usingSampleData && <span className="ml-2 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Demo Data</span>}
-        </p>
+        <p className="mt-1 text-[#14232B]/60">Users who have signed up.</p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
@@ -220,13 +226,13 @@ export default function AdminUsers() {
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Verified</p>
                 <p className="mt-1 font-medium text-[#14232B]">
-                  {viewModal.user && viewModal.user.isVerified ? "Yes" : "No"}
+                  {viewModal.user && viewModal.user.isVerified ? "✓ Verified" : "Unverified"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Blocked</p>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Status</p>
                 <p className="mt-1 font-medium text-[#14232B]">
-                  {viewModal.user && viewModal.user.isBlocked ? "Yes" : "No"}
+                  {viewModal.user && viewModal.user.isBlocked ? "Blocked" : "Active"}
                 </p>
               </div>
               <div>
@@ -264,7 +270,7 @@ export default function AdminUsers() {
                   rows={3}
                 />
                 <div className="flex gap-2 mt-3 flex-wrap">
-                  <Button variant="primary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(true)}>Verify</Button>
+                  <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(true)}>Verify</Button>
                   <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(false)}>Unverify</Button>
                   <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleBlock(true)}>Block</Button>
                   <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleBlock(false)}>Unblock</Button>
@@ -274,6 +280,28 @@ export default function AdminUsers() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {confirmAction && (
+        <Modal isOpen={!!confirmAction} onClose={() => setConfirmAction(null)} title="Confirm Action" size="sm">
+          <p className="text-[#14232B]/70 mb-6">
+            {confirmAction.type === "verify"
+              ? (confirmAction.value ? "Verify this user account?" : "Revoke verification for this user?")
+              : confirmAction.type === "block"
+              ? (confirmAction.value ? "Block this user? They will lose access." : "Unblock this user?")
+              : "Permanently delete this user and their listings? This cannot be undone."}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setConfirmAction(null)}>Cancel</Button>
+            <Button variant="danger" disabled={verifyBusy} onClick={executeConfirm}>Confirm</Button>
+          </div>
+        </Modal>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#14232B] text-white px-4 py-3 rounded-xl shadow-lg">
+          {toast}
+        </div>
       )}
     </div>
   );

@@ -60,6 +60,15 @@ export const adminApi = {
     request(`/admin-pulse/waitlist?page=${page}&limit=${limit}`, { token }),
   contacts: (token, page = 1, limit = 50) =>
     request(`/admin-pulse/contacts?page=${page}&limit=${limit}`, { token }),
+  users: (token, page = 1, limit = 50, filters = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (filters.role) params.set("role", filters.role);
+    if (filters.agentIntent !== undefined && filters.agentIntent !== "") params.set("agentIntent", filters.agentIntent);
+    if (filters.isVerified !== undefined && filters.isVerified !== "") params.set("isVerified", filters.isVerified);
+    if (filters.isBlocked !== undefined && filters.isBlocked !== "") params.set("isBlocked", filters.isBlocked);
+    if (filters.search) params.set("search", filters.search);
+    return request(`/admin-pulse/users?${params.toString()}`, { token });
+  },
   user: (token, id) =>
     request(`/admin-pulse/users/${encodeURIComponent(id)}`, { token }),
   verifyUser: (token, id, isVerified, note) =>
