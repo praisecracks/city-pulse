@@ -181,6 +181,7 @@ export default function AdminUsers() {
           Users who have signed up.
           {usingSampleData && <span className="ml-2 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Demo Data</span>}
         </p>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
       <Card>
