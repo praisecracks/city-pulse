@@ -10,6 +10,8 @@ const {
   getWaitlist,
   getContacts,
   getUsers,
+  getUser,
+  verifyUser,
   getPendingListings,
   reviewListing,
 } = require("../controllers/admin.controller");
@@ -30,6 +32,8 @@ router.get("/analytics/summary", adminAuth, getSummary);
 router.get("/analytics/timeline", adminAuth, getTimeline);
 router.get("/waitlist", adminAuth, getWaitlist);
 router.get("/contacts", adminAuth, getContacts);
+router.get("/users/:id", adminAuth, getUser);
+router.patch("/users/:id/verify", adminAuth, verifyUser);
 router.get("/users", adminAuth, getUsers);
 router.get("/listings", adminAuth, getPendingListings);
 router.patch("/listings/:id/review", adminAuth, reviewListing);

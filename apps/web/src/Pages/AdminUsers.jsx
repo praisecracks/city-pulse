@@ -29,6 +29,9 @@ export default function AdminUsers() {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [showExportModal, setShowExportModal] = useState(false);
   const [viewModal, setViewModal] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [verifyNote, setVerifyNote] = useState("");
+  const [verifyBusy, setVerifyBusy] = useState(false);
   const [usingSampleData, setUsingSampleData] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -52,7 +55,32 @@ export default function AdminUsers() {
     fetchData();
   }, [fetchData]);
 
-  const handlePageChange = (newPage) => {
+  const openDetail = useCallback(async (id) => {
+    setDetailLoading(true);
+    setVerifyNote("");
+    try {
+      const res = await adminApi.user(token, id);
+      setViewModal(res.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [token]);
+
+  const handleVerify = useCallback(async (isVerified) => {
+    if (!viewModal?.user?._id) return;
+    setVerifyBusy(true);
+    try {
+      const res = await adminApi.verifyUser(token, viewModal.user._id, isVerified, verifyNote);
+      setViewModal((prev) => prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev);
+      await fetchData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setVerifyBusy(false);
+    }
+  }, [token, viewModal, verifyNote, fetchData]);
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
@@ -137,7 +165,10 @@ export default function AdminUsers() {
       </div>
     )},
     { key: "createdAt", label: "Joined", sortable: true, render: (v) => new Date(v).toLocaleString() },
-  ], []);
+    { key: "actions", label: "Actions", render: (_, row) => (
+      <Button variant="secondary" size="sm" onClick={() => openDetail(row._id)}>View & Verify</Button>
+    )},
+  ], [selectedRows]);
 
   const toolbar = (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -268,69 +299,86 @@ export default function AdminUsers() {
       </Modal>
 
       {viewModal && (
-        <Modal isOpen={!!viewModal} onClose={() => setViewModal(null)} title="User Details" size="lg">
+        <Modal isOpen={!!viewModal} onClose={() => setViewModal(null)} title="User Verification" size="lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Name</p>
-                <p className="font-medium text-[#14232B] text-lg">{viewModal.name}</p>
+                <p className="font-medium text-[#14232B] text-lg">{viewModal.user?.name}</p>
               </div>
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Email</p>
-                <p className="font-medium text-[#14232B] font-mono">{viewModal.email}</p>
+                <p className="font-medium text-[#14232B] font-mono">{viewModal.user?.email}</p>
               </div>
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Phone</p>
-                <p className="font-medium text-[#14232B]">{viewModal.phone}</p>
+                <p className="font-medium text-[#14232B]">{viewModal.user?.phone}</p>
               </div>
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Roles</p>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {(viewModal.roles || []).map((role) => (
+                  {(viewModal.user?.roles || []).map((role) => (
                     <Badge key={role} variant={ROLE_BADGES[role]?.variant || "neutral"} size="sm">
                       {ROLE_BADGES[role]?.label || role}
                     </Badge>
                   ))}
-                  {viewModal.agentIntent && <Badge variant="primary" size="sm">Agent Intent</Badge>}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Trust Score</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="w-32 h-2 bg-[#F6F1E6] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(0, Math.min(100, (viewModal.trustScore / 5) * 100))}%`,
-                        backgroundColor: (viewModal.trustScore || 3) >= 4 ? "#129E9E" : (viewModal.trustScore || 3) >= 3 ? "#14232B" : "#B5453B",
-                      }}
-                    />
-                  </div>
-                  <span className="text-lg font-bold text-[#14232B]">{(viewModal.trustScore || 3)}/5</span>
+                  {viewModal.user?.agentIntent && <Badge variant="primary" size="sm">Agent Intent</Badge>}
                 </div>
               </div>
               <div>
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Verified</p>
                 <p className="mt-1 font-medium text-[#14232B]">
-                  {viewModal.otpVerified ? "Yes (OTP)" : "No"}
+                  {viewModal.user?.isVerified ? `Yes (by ${viewModal.user.verifiedBy || "admin"})` : "No"}
+                  {viewModal.user?.verifiedAt && <span className="text-xs text-[#14232B]/50 ml-2">{new Date(viewModal.user.verifiedAt).toLocaleString()}</span>}
                 </p>
+                {viewModal.user?.verificationNote && (
+                  <p className="text-xs text-[#14232B]/60 mt-1 italic">{viewModal.user.verificationNote}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Trust Score</p>
+                <p className="mt-1 font-medium text-[#14232B]">{viewModal.user?.trustScore || 3}/5</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Joined</p>
+                <p className="mt-1 font-medium text-[#14232B] font-mono">{viewModal.user?.createdAt ? new Date(viewModal.user.createdAt).toLocaleString() : ""}</p>
               </div>
             </div>
             <div className="space-y-4">
-              <div>
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Joined</p>
-                <p className="font-medium text-[#14232B] font-mono">{new Date(viewModal.createdAt).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Last Active</p>
-                <p className="font-medium text-[#14232B] font-mono">{viewModal.lastActive ? new Date(viewModal.lastActive).toLocaleString() : "Never"}</p>
-              </div>
+              <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Listings (onboarding data)</p>
+              {(viewModal.listings || []).length === 0 && <p className="text-sm text-[#14232B]/50">No listings submitted.</p>}
+              {(viewModal.listings || []).map((l) => (
+                <div key={l._id} className="border border-[#14232B]/10 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-[#14232B]">{l.title}</p>
+                    <Badge variant={l.reviewStatus === "approved" ? "success" : l.reviewStatus === "rejected" ? "danger" : "warning"} size="xs">{l.reviewStatus || "legacy"}</Badge>
+                  </div>
+                  <p className="text-xs text-[#14232B]/60">{l.category} · {l.status}</p>
+                  {l.contactPhone && <p className="text-xs">Phone: {l.contactPhone}</p>}
+                  {l.email && <p className="text-xs">Email: {l.email}</p>}
+                  {l.whatsapp && <p className="text-xs">WhatsApp: {l.whatsapp}</p>}
+                  {l.address && <p className="text-xs">Address: {l.address}</p>}
+                  {l.images?.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {l.images.map((img, i) => (
+                        <img key={i} src={adminAssetUrl(img.path)} alt={img.caption || ""} className="w-16 h-16 object-cover rounded-lg border border-[#14232B]/10" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
               <div className="pt-4 border-t border-[#14232B]/10">
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Actions</p>
-                <div className="flex gap-2 mt-2">
-                  <Button variant="secondary" size="sm">Edit Roles</Button>
-                  <Button variant="secondary" size="sm">View Activity</Button>
-                  <Button variant="danger" size="sm">Suspend</Button>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider mb-2">Verification note</p>
+                <textarea
+                  value={verifyNote}
+                  onChange={(e) => setVerifyNote(e.target.value)}
+                  placeholder="Reason for verification decision (optional)"
+                  className="w-full border border-[#14232B]/15 rounded-xl p-2 text-sm text-[#14232B] focus:outline-none focus:border-[#129E9E]"
+                  rows={3}
+                />
+                <div className="flex gap-2 mt-3">
+                  <Button variant="primary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(true)}>Verify</Button>
+                  <Button variant="danger" size="sm" disabled={verifyBusy} onClick={() => handleVerify(false)}>Unverify</Button>
                 </div>
               </div>
             </div>

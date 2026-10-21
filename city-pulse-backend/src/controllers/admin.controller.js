@@ -194,6 +194,47 @@ exports.getPendingListings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/admin/users/:id
+ * Returns a single user with their listings (onboarding data) for verification.
+ */
+exports.getUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password -resetPasswordToken -resetPasswordExpires");
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
+  const listings = await Pulse.find({ agent: user._id })
+    .sort({ createdAt: -1 })
+    .select("title category status reviewStatus reviewNote reviewedAt images contactPhone email whatsapp address coordinates details createdAt");
+  res.status(200).json({ success: true, data: { user, listings } });
+});
+
+/**
+ * PATCH /api/v1/admin/users/:id/verify
+ * Verifies or unverifies a user (platform/admin review).
+ */
+exports.verifyUser = asyncHandler(async (req, res) => {
+  const { isVerified, note } = req.body || {};
+  if (typeof isVerified !== "boolean") {
+    return res.status(400).json({ success: false, message: "isVerified must be a boolean." });
+  }
+  if (note !== undefined && (typeof note !== "string" || note.trim().length > 500)) {
+    return res.status(400).json({ success: false, message: "Verification note must be text no longer than 500 characters." });
+  }
+  const update = {
+    isVerified,
+    verifiedAt: new Date(),
+    verifiedBy: req.admin?.sub || "admin",
+    verificationNote: typeof note === "string" ? note.trim() : "",
+  };
+  const user = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true })
+    .select("_id name email phone isVerified verifiedAt verifiedBy verificationNote");
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
+  res.status(200).json({ success: true, data: user });
+});
+
+/**
  * PATCH /api/v1/admin-pulse/listings/:id/review
  * Approves or rejects a pending provider listing.
  */

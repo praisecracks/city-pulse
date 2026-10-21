@@ -112,6 +112,12 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    setStatusMessage('Resetting your password...');
+
+    const msgTimer1 = setTimeout(() => setStatusMessage('Server may be starting up, please wait...'), 5000);
+    const msgTimer2 = setTimeout(() => setStatusMessage('Still working on it, almost there...'), 15000);
+    const msgTimer3 = setTimeout(() => setStatusMessage('This is taking longer than usual, hang tight...'), 30000);
+
     try {
       setIsSubmitting(true);
 
@@ -119,6 +125,7 @@ export default function ResetPasswordScreen() {
         await apiRequest('/auth/reset-password', {
           method: 'POST',
           body: { token: resetToken, password },
+          timeoutMs: 60000,
         });
       } else {
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -132,6 +139,10 @@ export default function ResetPasswordScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setErrorMessage(describeError(err, 'Failed to reset password. Please try again.'));
     } finally {
+      clearTimeout(msgTimer1);
+      clearTimeout(msgTimer2);
+      clearTimeout(msgTimer3);
+      setStatusMessage(null);
       setIsSubmitting(false);
     }
   }, [isFormValid, isSubmitting, password, resetToken]);
@@ -276,7 +287,15 @@ export default function ResetPasswordScreen() {
             </View>
           </ScrollView>
 
-          {/* Action Footer */}
+                      {/* Status message during long waits */}
+            {statusMessage && (
+              <View style={styles.statusBanner}>
+                <ActivityIndicator size="small" color={COLOR_PRIMARY} />
+                <ThemedText style={styles.statusText}>{statusMessage}</ThemedText>
+              </View>
+            )}
+
+            {/* Action Footer */}
           <View style={styles.actionGroup}>
             <Pressable
               accessibilityRole="button"
@@ -498,6 +517,25 @@ const styles = StyleSheet.create({
     color: COLOR_TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  /* Status Banner */
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  statusText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#065F46',
+    fontWeight: '600',
   },
 
   /* Error State */

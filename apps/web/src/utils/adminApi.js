@@ -60,8 +60,14 @@ export const adminApi = {
     request(`/admin-pulse/waitlist?page=${page}&limit=${limit}`, { token }),
   contacts: (token, page = 1, limit = 50) =>
     request(`/admin-pulse/contacts?page=${page}&limit=${limit}`, { token }),
-  users: (token, page = 1, limit = 50) =>
-    request(`/admin-pulse/users?page=${page}&limit=${limit}`, { token }),
+  user: (token, id) =>
+    request(`/admin-pulse/users/${encodeURIComponent(id)}`, { token }),
+  verifyUser: (token, id, isVerified, note) =>
+    request(`/admin-pulse/users/${encodeURIComponent(id)}/verify`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ isVerified, note }),
+    }),
   listings: (token, page = 1, limit = 20, reviewStatus = "pending_review") =>
     request(`/admin-pulse/listings?page=${page}&limit=${limit}&reviewStatus=${encodeURIComponent(reviewStatus)}`, { token }),
   reviewListing: (token, listingId, reviewStatus, note) =>

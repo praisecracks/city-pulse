@@ -42,11 +42,14 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
       select: false,
     },
-    // This is platform/admin review, not proof of phone ownership or an OTP.
+    // Platform/admin review, not proof of phone ownership or an OTP.
     isVerified: {
       type: Boolean,
       default: false,
     },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String, trim: true },
+    verificationNote: { type: String, trim: true, maxlength: 500 },
     // Legacy OTP state; account review status is tracked separately by isVerified.
     otpVerified: {
       type: Boolean,

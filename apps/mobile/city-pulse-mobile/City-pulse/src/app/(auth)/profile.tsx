@@ -151,7 +151,9 @@ export default function ProfileScreen() {
       return;
     }
 
-    router.push('/auth-required?intent=agent');
+    // Already logged in as a customer: go straight to provider registration
+    // instead of re-entering auth.
+    router.push('/agent-registration-1' as never);
   };
 
   const handleAvatarPick = async (source: PickSource) => {
