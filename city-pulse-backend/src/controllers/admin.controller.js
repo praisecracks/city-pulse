@@ -235,6 +235,43 @@ exports.verifyUser = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PATCH /api/v1/admin/users/:id/block
+ */
+exports.blockUser = asyncHandler(async (req, res) => {
+  const { isBlocked, note } = req.body || {};
+  if (typeof isBlocked !== "boolean") {
+    return res.status(400).json({ success: false, message: "isBlocked must be a boolean." });
+  }
+  if (note !== undefined && (typeof note !== "string" || note.trim().length > 500)) {
+    return res.status(400).json({ success: false, message: "Block note must be text no longer than 500 characters." });
+  }
+  const update = {
+    isBlocked,
+    blockedAt: isBlocked ? new Date() : null,
+    blockedBy: isBlocked ? (req.admin?.sub || "admin") : "",
+    blockNote: isBlocked && typeof note === "string" ? note.trim() : "",
+  };
+  const user = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true })
+    .select("_id name email phone isVerified isBlocked blockedAt blockedBy blockNote");
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
+  res.status(200).json({ success: true, data: user });
+});
+
+/**
+ * DELETE /api/v1/admin/users/:id
+ */
+exports.deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
+  await Pulse.deleteMany({ agent: user._id });
+  res.status(200).json({ success: true, message: "User deleted." });
+});
+
+/**
  * PATCH /api/v1/admin-pulse/listings/:id/review
  * Approves or rejects a pending provider listing.
  */

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminApi } from "../utils/adminApi";
 import { Card, Table, Button, Icon, Badge, Input, Select, Modal } from "../components/admin/ui";
@@ -71,6 +71,36 @@ export default function AdminUsers() {
     }
   }, [token, viewModal, verifyNote, fetchData]);
 
+  const handleBlock = useCallback(async (isBlocked) => {
+    if (!viewModal || !viewModal.user) return;
+    if (!window.confirm(isBlocked ? "Block this user?" : "Unblock this user?")) return;
+    setVerifyBusy(true);
+    try {
+      const res = await adminApi.blockUser(token, viewModal.user._id, isBlocked, verifyNote);
+      setViewModal((prev) => (prev ? { ...prev, user: { ...prev.user, ...res.data } } : prev));
+      await fetchData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setVerifyBusy(false);
+    }
+  }, [token, viewModal, verifyNote, fetchData]);
+
+  const handleDelete = useCallback(async () => {
+    if (!viewModal || !viewModal.user) return;
+    if (!window.confirm("Permanently delete this user and their listings?")) return;
+    setVerifyBusy(true);
+    try {
+      await adminApi.deleteUser(token, viewModal.user._id);
+      setViewModal(null);
+      await fetchData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setVerifyBusy(false);
+    }
+  }, [token, viewModal, fetchData]);
+
   let processedItems = data;
   if (search) {
     const s = search.toLowerCase();
@@ -93,7 +123,7 @@ export default function AdminUsers() {
         <p className="font-medium text-[#14232B]">{v}</p>
         <p className="text-xs text-[#14232B]/50 font-mono">{row.email}</p>
       </div>
-    )},
+    ) },
     { key: "phone", label: "Phone" },
     { key: "roles", label: "Roles", render: (v, row) => (
       <div className="flex flex-wrap gap-1.5">
@@ -104,13 +134,13 @@ export default function AdminUsers() {
         ))}
         {row.agentIntent && <Badge variant="primary" size="xs">Agent Intent</Badge>}
       </div>
-    )},
+    ) },
     { key: "otpVerified", label: "Verified", render: (v) => (v ? "Verified" : "Unverified") },
     { key: "trustScore", label: "Trust", render: (v) => (v || 3) + "/5" },
     { key: "createdAt", label: "Joined", render: (v) => new Date(v).toLocaleString() },
     { key: "actions", label: "Actions", render: (_, row) => (
-      <Button variant="secondary" size="sm" onClick={() => openDetail(row._id)}>View & Verify</Button>
-    )},
+      <Button variant="secondary" size="sm" onClick={() => openDetail(row._id)}>Manage</Button>
+    ) },
   ];
 
   const toolbar = (
@@ -171,7 +201,7 @@ export default function AdminUsers() {
       </Card>
 
       {viewModal && (
-        <Modal isOpen={!!viewModal} onClose={() => setViewModal(null)} title="User Verification" size="lg">
+        <Modal isOpen={!!viewModal} onClose={() => setViewModal(null)} title="Manage User" size="lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
@@ -190,6 +220,12 @@ export default function AdminUsers() {
                 <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Verified</p>
                 <p className="mt-1 font-medium text-[#14232B]">
                   {viewModal.user && viewModal.user.isVerified ? "Yes" : "No"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider">Blocked</p>
+                <p className="mt-1 font-medium text-[#14232B]">
+                  {viewModal.user && viewModal.user.isBlocked ? "Yes" : "No"}
                 </p>
               </div>
               <div>
@@ -218,17 +254,20 @@ export default function AdminUsers() {
                 </div>
               ))}
               <div className="pt-4 border-t border-[#14232B]/10">
-                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider mb-2">Verification note</p>
+                <p className="text-xs text-[#14232B]/50 uppercase tracking-wider mb-2">Note</p>
                 <textarea
                   value={verifyNote}
                   onChange={(e) => setVerifyNote(e.target.value)}
-                  placeholder="Reason for verification decision (optional)"
+                  placeholder="Reason for action (optional)"
                   className="w-full border border-[#14232B]/15 rounded-xl p-2 text-sm text-[#14232B] focus:outline-none focus:border-[#129E9E]"
                   rows={3}
                 />
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-3 flex-wrap">
                   <Button variant="primary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(true)}>Verify</Button>
-                  <Button variant="danger" size="sm" disabled={verifyBusy} onClick={() => handleVerify(false)}>Unverify</Button>
+                  <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleVerify(false)}>Unverify</Button>
+                  <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleBlock(true)}>Block</Button>
+                  <Button variant="secondary" size="sm" disabled={verifyBusy} onClick={() => handleBlock(false)}>Unblock</Button>
+                  <Button variant="danger" size="sm" disabled={verifyBusy} onClick={handleDelete}>Delete</Button>
                 </div>
               </div>
             </div>

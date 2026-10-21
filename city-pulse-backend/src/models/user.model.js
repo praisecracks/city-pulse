@@ -47,6 +47,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    blockedAt: { type: Date },
+    blockedBy: { type: String, trim: true },
+    blockNote: { type: String, trim: true, maxlength: 500 },
     verifiedAt: { type: Date },
     verifiedBy: { type: String, trim: true },
     verificationNote: { type: String, trim: true, maxlength: 500 },

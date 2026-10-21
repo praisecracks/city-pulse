@@ -12,6 +12,8 @@ const {
   getUsers,
   getUser,
   verifyUser,
+  blockUser,
+  deleteUser,
   getPendingListings,
   reviewListing,
 } = require("../controllers/admin.controller");
@@ -34,6 +36,8 @@ router.get("/waitlist", adminAuth, getWaitlist);
 router.get("/contacts", adminAuth, getContacts);
 router.get("/users/:id", adminAuth, getUser);
 router.patch("/users/:id/verify", adminAuth, verifyUser);
+router.patch("/users/:id/block", adminAuth, blockUser);
+router.delete("/users/:id", adminAuth, deleteUser);
 router.get("/users", adminAuth, getUsers);
 router.get("/listings", adminAuth, getPendingListings);
 router.patch("/listings/:id/review", adminAuth, reviewListing);

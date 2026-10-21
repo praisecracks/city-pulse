@@ -68,6 +68,17 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify({ isVerified, note }),
     }),
+  blockUser: (token, id, isBlocked, note) =>
+    request(`/admin-pulse/users/${encodeURIComponent(id)}/block`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ isBlocked, note }),
+    }),
+  deleteUser: (token, id) =>
+    request(`/admin-pulse/users/${encodeURIComponent(id)}`, {
+      token,
+      method: "DELETE",
+    }),
   listings: (token, page = 1, limit = 20, reviewStatus = "pending_review") =>
     request(`/admin-pulse/listings?page=${page}&limit=${limit}&reviewStatus=${encodeURIComponent(reviewStatus)}`, { token }),
   reviewListing: (token, listingId, reviewStatus, note) =>
