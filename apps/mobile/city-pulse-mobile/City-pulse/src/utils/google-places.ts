@@ -207,13 +207,25 @@ export async function fetchDirections(
   };
 
   try {
+    const androidCert = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_CERT_SHA1;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.duration,routes.legs.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,routes.legs.steps.startLocation,routes.legs.steps.endLocation',
+    };
+
+    // Identify this Android app to Google so an API key restricted to
+    // "Android apps" accepts the request instead of returning
+    // "Requests from this Android client application <empty> are blocked."
+    if (androidCert) {
+      headers['X-Android-Package'] = 'com.citypulse.app';
+      headers['X-Android-Cert'] = androidCert;
+    }
+
     const response = await fetch(DIRECTIONS_BASE, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.duration,routes.legs.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,routes.legs.steps.startLocation,routes.legs.steps.endLocation',
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
