@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { trackEvent } from "@/utils/analytics";
+import { trackEvent } from "../../utils/analytics";
 
 const DEFAULT_UNLOCK_DELAY_MS = 12 * 60 * 60 * 1000;
 const STORAGE_KEY = "cp_android_unlock_at_v2";
