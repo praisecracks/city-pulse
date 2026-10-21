@@ -231,49 +231,51 @@ export default function CategoryListScreen() {
           </View>
         </View>
 
-         {/* Category Filter Chips */}
-        <View style={styles.chipContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipScroll}
-          >
-            <Pressable
-              onPress={() => setActiveCategory(null)}
-              style={[styles.chip, !activeCategory && styles.activeChip]}
-            >
-              <Ionicons
-                name="apps"
-                size={13}
-                color={!activeCategory ? '#FFF' : COLOR_TEXT_MUTED}
-              />
-              <ThemedText
-                style={[styles.chipText, !activeCategory && styles.activeChipText]}
+          {/* Service-type chips — only shown in browse-all mode (no pre-selected category) */}
+          {!urlCategory && (
+            <View style={styles.chipContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipScroll}
               >
-                All Services
-              </ThemedText>
-            </Pressable>
-
-            {CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat}
-                onPress={() => setActiveCategory(cat)}
-                style={[styles.chip, activeCategory === cat && styles.activeChip]}
-              >
-                <Ionicons
-                  name="ellipse"
-                  size={13}
-                  color={activeCategory === cat ? '#FFF' : COLOR_PRIMARY}
-                />
-                <ThemedText
-                  style={[styles.chipText, activeCategory === cat && styles.activeChipText]}
+                <Pressable
+                  onPress={() => setActiveCategory(null)}
+                  style={[styles.chip, !activeCategory && styles.activeChip]}
                 >
-                  {CATEGORY_META[cat].label}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+                  <Ionicons
+                    name="apps"
+                    size={13}
+                    color={!activeCategory ? '#FFF' : COLOR_TEXT_MUTED}
+                  />
+                  <ThemedText
+                    style={[styles.chipText, !activeCategory && styles.activeChipText]}
+                  >
+                    All Services
+                  </ThemedText>
+                </Pressable>
+
+                {CATEGORIES.map((cat) => (
+                  <Pressable
+                    key={cat}
+                    onPress={() => setActiveCategory(cat)}
+                    style={[styles.chip, activeCategory === cat && styles.activeChip]}
+                  >
+                    <Ionicons
+                      name="ellipse"
+                      size={13}
+                      color={activeCategory === cat ? '#FFF' : COLOR_PRIMARY}
+                    />
+                    <ThemedText
+                      style={[styles.chipText, activeCategory === cat && styles.activeChipText]}
+                    >
+                      {CATEGORY_META[cat].label}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
         {/* Dynamic Status Filter Chips */}
         <View style={styles.chipContainer}>

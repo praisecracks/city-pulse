@@ -2,10 +2,22 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "@/utils/analytics";
 
+const DEFAULT_UNLOCK_DELAY_MS = 24 * 60 * 60 * 1000;
+
+function resolveUnlockAt() {
+  const envValue = import.meta.env.VITE_ANDROID_APP_UNLOCK_AT;
+  if (envValue) return new Date(envValue).getTime();
+
+  const stored = localStorage.getItem("cp_android_unlock_at");
+  if (stored) return Number(stored);
+
+  const next = Date.now() + DEFAULT_UNLOCK_DELAY_MS;
+  localStorage.setItem("cp_android_unlock_at", String(next));
+  return next;
+}
+
 const androidDownloadUrl = import.meta.env.VITE_ANDROID_APP_DOWNLOAD_URL;
-const unlockAt = new Date(
-  import.meta.env.VITE_ANDROID_APP_UNLOCK_AT,
-).getTime();
+const unlockAt = resolveUnlockAt();
 
 function getRemainingTime() {
   return Math.max(0, unlockAt - Date.now());
