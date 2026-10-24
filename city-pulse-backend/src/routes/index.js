@@ -9,6 +9,7 @@ const waitlistRoutes = require("./waitlist.routes");
 const contactRoutes = require("./contact.routes");
 const analyticsRoutes = require("./analytics.routes");
 const adminRoutes = require("./admin.routes");
+const placesRoutes = require("./places.routes");
 
 router.use("/auth", authRoutes);
 router.use("/pulses", pulseRoutes);
@@ -18,5 +19,6 @@ router.use("/waitlist", waitlistRoutes);
 router.use("/contact", contactRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/admin-pulse", adminRoutes);
+router.use("/places", placesRoutes);
 
 module.exports = router;

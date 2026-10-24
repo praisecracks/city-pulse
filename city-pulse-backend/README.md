@@ -114,6 +114,86 @@ the declared `Content-Type` is not trusted.
 | PATCH  | `/:id/read`     | Mark one read              |
 | POST   | `/read-all`     | Mark all read              |
 
+### Places — `/places`
+
+Proxies the Google Maps Platform web services. The app cannot call them
+itself: the Google key it ships with is restricted to Android applications,
+and Google rejects web-service calls that carry no Android application
+identity with `API_KEY_ANDROID_APP_BLOCKED`. The backend holds a separate
+server-side key (`GOOGLE_MAPS_API_KEY`) so the key that can spend Google
+quota never ships in the client bundle.
+
+| Method | Endpoint        | Description                                        |
+|--------|-----------------|----------------------------------------------------|
+| GET    | `/autocomplete` | Place suggestions for a search string               |
+| GET    | `/detail`       | Resolve a place to its coordinates and address      |
+| GET    | `/directions`   | Road directions between two coordinates             |
+| GET    | `/reverse`      | Reverse geocode a coordinate into an address        |
+
+**Access:** public but rate limited. The onboarding flow asks for a location
+before the user has an account, so requiring a token would break a legitimate
+path through the app. A signed-in caller is identified by the `optionalAuth`
+middleware and gets their own rate-limit bucket.
+
+**Query parameters**
+
+| Endpoint        | Parameters                                                       |
+|-----------------|------------------------------------------------------------------|
+| `/autocomplete` | `input` (required, 2–200 chars), `regionCode` (optional, 2 chars) |
+| `/detail`       | `placeId` (required)                                             |
+| `/directions`   | `originLat`, `originLng`, `destinationLat`, `destinationLng` (required), `mode` (`walking` \| `driving` \| `bicycling` \| `transit`) |
+| `/reverse`      | `lat`, `lng` (required)                                          |
+
+**Response shapes**
+
+```jsonc
+// GET /places/autocomplete
+{ "success": true, "data": { "predictions": [
+  { "placeId": "ChIJ…", "description": "Ibara, Abeokuta, Nigeria",
+    "structuredFormatting": { "mainText": "Ibara", "secondaryText": "Abeokuta, Nigeria" } }
+] } }
+
+// GET /places/detail
+{ "success": true, "data": {
+  "placeId": "ChIJ…", "formattedAddress": "Ibara, Abeokuta, …",
+  "latitude": 7.1975, "longitude": 3.4363,
+  "addressComponents": { "sublocality": "Ibara", "locality": "Abeokuta" },
+  "name": "Ibara" } }
+
+// GET /places/directions
+{ "success": true, "data": { "status": "OK", "routes": [ { "legs": [ … ], "overviewPolyline": { "points": "…" } } ] } }
+
+// GET /places/reverse
+{ "success": true, "data": { "results": [
+  { "formattedAddress": "…", "addressComponents": { … }, "latitude": 7.1975, "longitude": 3.4363 }
+] } }
+```
+
+`latitude` and `longitude` are `null` when Google has no location for a place.
+They are never replaced with a substitute coordinate.
+
+**Errors.** A failed lookup is always reported as a failure, never as an empty
+result set. An empty `predictions`/`results` array means Google looked and had
+no match; a `routes` array that is empty means no road route exists.
+
+```jsonc
+{ "success": false, "code": "LOCATION_SERVICE_MISCONFIGURED", "message": "Location search is temporarily unavailable. Please try again shortly." }
+```
+
+| `code`                          | HTTP | Meaning                                        |
+|---------------------------------|------|------------------------------------------------|
+| `INVALID_REQUEST`               | 400  | The request was malformed                      |
+| `PLACE_NOT_FOUND`               | 404  | The place does not exist                       |
+| `LOCATION_QUOTA_EXCEEDED`       | 429  | Google quota exhausted — retry shortly         |
+| `LOCATION_SERVICE_UNAVAILABLE`  | 502  | Google could not be reached                    |
+| `LOCATION_SERVICE_TIMEOUT`      | 504  | Google did not respond in time                 |
+| `LOCATION_SERVICE_MISCONFIGURED`| 503  | The server-side key is not set up correctly    |
+
+The `code` is stable and safe for a client to branch on. The `message` is
+written for a person. Google's own error text is logged on the server with
+the key redacted, and is never sent to the client.
+
+
 ## Roles
 
 A new account is a `customer`. Publishing a listing is what grants `agent` — so

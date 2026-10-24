@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Analytics = require("../models/analytics.model");
 const UserWaitlist = require("../models/userWaitlist.model");
 const AgentWaitlist = require("../models/agentWaitlist.model");
@@ -143,9 +144,33 @@ exports.getUsers = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
   const skip = (page - 1) * limit;
 
+  const query = {};
+  if (req.query.role) {
+    query.roles = req.query.role;
+  }
+  if (req.query.agentIntent !== undefined) {
+    query.agentIntent = req.query.agentIntent === "true";
+  }
+  if (req.query.isVerified !== undefined) {
+    query.isVerified = req.query.isVerified === "true";
+  }
+  if (req.query.isBlocked !== undefined) {
+    query.isBlocked = req.query.isBlocked === "true";
+  }
+  if (req.query.search) {
+    const s = req.query.search.trim();
+    if (s) {
+      query.$or = [
+        { name: new RegExp(s, "i") },
+        { email: new RegExp(s, "i") },
+        { phone: new RegExp(s, "i") },
+      ];
+    }
+  }
+
   const [data, total] = await Promise.all([
-    User.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-    User.countDocuments({}),
+    User.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    User.countDocuments(query),
   ]);
 
   res.status(200).json({ success: true, data: { data, total, page, limit } });
@@ -198,6 +223,9 @@ exports.getPendingListings = asyncHandler(async (req, res) => {
  * Returns a single user with their listings (onboarding data) for verification.
  */
 exports.getUser = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
   const user = await User.findById(req.params.id).select("-password -resetPasswordToken -resetPasswordExpires");
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found." });
@@ -213,6 +241,9 @@ exports.getUser = asyncHandler(async (req, res) => {
  * Verifies or unverifies a user (platform/admin review).
  */
 exports.verifyUser = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
   const { isVerified, note } = req.body || {};
   if (typeof isVerified !== "boolean") {
     return res.status(400).json({ success: false, message: "isVerified must be a boolean." });
@@ -238,6 +269,9 @@ exports.verifyUser = asyncHandler(async (req, res) => {
  * PATCH /api/v1/admin/users/:id/block
  */
 exports.blockUser = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
   const { isBlocked, note } = req.body || {};
   if (typeof isBlocked !== "boolean") {
     return res.status(400).json({ success: false, message: "isBlocked must be a boolean." });
@@ -263,6 +297,9 @@ exports.blockUser = asyncHandler(async (req, res) => {
  * DELETE /api/v1/admin/users/:id
  */
 exports.deleteUser = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ success: false, message: "User not found." });
+  }
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found." });
@@ -318,16 +355,23 @@ exports.reviewListing = asyncHandler(async (req, res) => {
   }
 
   const agentId = pulse.agent?._id || pulse.agent;
-  const agent = await User.findByIdAndUpdate(
-    agentId,
-    { $set: { isVerified: reviewStatus === "approved" } },
-    { new: true, runValidators: true },
-  ).select("_id name email phone isVerified");
+  if (agentId) {
+    const agent = await User.findByIdAndUpdate(
+      agentId,
+      { $set: { isVerified: reviewStatus === "approved" } },
+      { new: true, runValidators: true },
+    ).select("_id name email phone isVerified");
 
-  if (!agent) {
-    throw new Error("Listing owner could not be found while updating verification.");
+    if (!agent) {
+      throw new Error("Listing owner could not be found while updating verification.");
+    }
+
+    if (pulse.agent && typeof pulse.agent === "object") {
+      pulse.agent.isVerified = agent.isVerified;
+    } else {
+      pulse.agent = agent;
+    }
   }
 
-  pulse.agent = agent;
   res.status(200).json({ success: true, data: pulse });
 });
