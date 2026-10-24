@@ -64,15 +64,21 @@ export const GOOGLE_MAPS_API_KEY_IOS: string | undefined =
 export const hasGoogleMapsKey = (): boolean => Boolean(getGoogleMapsApiKey());
 
 /**
- * Returns the platform-appropriate Google Maps API key for client-side calls.
+ * Returns the platform-appropriate Google Maps API key for the native MapView.
+ *
+ * This key is only for the native map. It must never be used for the Places,
+ * Routes or Geocoding web services: Google rejects those calls with
+ * `API_KEY_ANDROID_APP_BLOCKED` because a request from the app carries no
+ * Android application identity. Those services are proxied through the backend
+ * instead — see `src/utils/google-places.ts`.
  *
  * The iOS key is intentionally left as a placeholder in `.env.local`, so on
- * iOS this returns undefined and every Places call degrades to a no-op rather
- * than sending a fake key to Google and producing a confusing auth error.
+ * iOS this returns undefined and the native map degrades to the default
+ * provider rather than sending a fake key to Google.
  */
 export function getGoogleMapsApiKey(): string | undefined {
   return normalizeApiKey(
-    Platform.OS === 'android' ? GOOGLE_MAPS_API_KEY_ANDROID : GOOGLE_MAPS_API_KEY,
+    Platform.OS === 'android' ? GOOGLE_MAPS_API_KEY_ANDROID : GOOGLE_MAPS_API_KEY_IOS,
   );
 }
 

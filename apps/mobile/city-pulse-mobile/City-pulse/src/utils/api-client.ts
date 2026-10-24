@@ -21,10 +21,24 @@ export class ApiError extends Error {
   readonly isTimeout: boolean;
   readonly status: number | null;
   readonly queued: boolean;
+  /**
+   * A stable machine-readable code from the server, when it sent one.
+   *
+   * `message` is written for a person and can be reworded at any time. `code`
+   * is how a caller tells "the service is down" apart from "your request was
+   * wrong" without matching on prose.
+   */
+  readonly code: string | null;
 
   constructor(
     message: string,
-    options: { isOffline?: boolean; isTimeout?: boolean; status?: number | null; queued?: boolean } = {},
+    options: {
+      isOffline?: boolean;
+      isTimeout?: boolean;
+      status?: number | null;
+      queued?: boolean;
+      code?: string | null;
+    } = {},
   ) {
     super(message);
     this.name = 'ApiError';
@@ -32,6 +46,7 @@ export class ApiError extends Error {
     this.isTimeout = options.isTimeout ?? false;
     this.status = options.status ?? null;
     this.queued = options.queued ?? false;
+    this.code = options.code ?? null;
   }
 }
 
@@ -108,7 +123,7 @@ export async function apiRequest<T = Record<string, unknown>>(
     });
 
     const payload = (await response.json().catch(() => null)) as
-      | (Record<string, unknown> & { success?: boolean; message?: string })
+      | (Record<string, unknown> & { success?: boolean; message?: string; code?: string })
       | null;
 
     if (!response.ok || !payload?.success) {
@@ -118,7 +133,10 @@ export async function apiRequest<T = Record<string, unknown>>(
       const message = response.status >= 500
         ? 'The service is temporarily unavailable. Please try again.'
         : (payload?.message as string | undefined) ?? `Request failed (${response.status}).`;
-      throw new ApiError(message, { status: response.status });
+      throw new ApiError(message, {
+        status: response.status,
+        code: (payload?.code as string | undefined) ?? null,
+      });
     }
 
     return payload as T;

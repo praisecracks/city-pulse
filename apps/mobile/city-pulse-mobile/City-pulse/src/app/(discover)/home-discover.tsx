@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { FeatureInsightCard, type FeatureInsight } from '@/components/feature-insight-card';
 import { LocationHeader } from '@/components/location-header';
+import { getAgentResumePath } from '@/utils/agent-onboarding';
 import { useAppState } from '@/state/app-state';
 import { API_BASE_URL } from '@/utils/api-config';
 import { apiRequest, describeError } from '@/utils/api-client';
@@ -469,7 +470,7 @@ function parseFreshnessMinutes(updated: string): number {
 export default function HomeDiscoverScreen() {
   const { area } = useLocalSearchParams<{ area?: string }>();
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const { setHasSeenOnboarding, user, customerLocation } = useAppState();
+  const { setHasSeenOnboarding, user, customerLocation, agentDraft } = useAppState();
   const theme = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
   const badgeToneStyles = {
@@ -571,8 +572,24 @@ export default function HomeDiscoverScreen() {
   }, [selectedArea]);
 
   const handleBecomeAgent = useCallback(() => {
-    router.push('/auth-required?intent=agent');
-  }, []);
+    const isAgent = user?.roles?.includes('agent') ?? false;
+    if (isAgent) {
+      router.push('/agent-dashboard');
+      return;
+    }
+    if (user?.agentIntent) {
+      router.push((getAgentResumePath(agentDraft) || '/agent-registration-1') as never);
+      return;
+    }
+    if (!user) {
+      router.push('/auth-required?intent=agent');
+      return;
+    }
+    router.push({
+      pathname: '/account-type',
+      params: { existingUser: 'true' },
+    } as never);
+  }, [user, agentDraft]);
 
   const handleCreateAccount = useCallback(() => {
     router.push('/create-account');

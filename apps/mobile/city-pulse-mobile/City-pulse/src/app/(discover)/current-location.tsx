@@ -9,20 +9,26 @@ import { ThemedView } from '@/components/themed-view';
 import { ImageBackdrop } from '@/components/image-backdrop';
 import { useAppState } from '@/state/app-state';
 import { resolveDisplayArea } from '@/utils/display-area';
+import { isLocationVerified } from '@/utils/location';
 
 const BRAND_TEAL = '#129E9E';
 const SCRIM = 'rgba(11, 15, 20, 0.62)';
 
 export default function CurrentLocationScreen() {
   const { customerLocation } = useAppState();
-  
+
   const gps = customerLocation?.gps;
   const address = customerLocation?.address;
   const serviceArea = customerLocation?.serviceArea;
   const isGps = customerLocation?.gps !== null;
   const accuracy = gps?.accuracy ? Math.round(gps.accuracy) : null;
   const hasCoords = gps !== null;
-  
+
+  // An address that was typed rather than resolved has no coordinates. The
+  // screen says so, because "Location confirmed" over a text-only entry
+  // would be a promise the app cannot keep.
+  const isVerified = isLocationVerified(customerLocation);
+
   // Build display area from service area or address. "Unknown area" is the
   // placeholder the reverse-geocode returns when it fails, so it is treated as
   // absent rather than shown to the user.
@@ -31,7 +37,7 @@ export default function CurrentLocationScreen() {
     address?.community,
     customerLocation?.label,
   );
-  
+
   // Build detailed address for display
   const detailedAddress = address?.streetName && address?.community
     ? `${address.streetName}, ${address.community}`
@@ -73,20 +79,30 @@ export default function CurrentLocationScreen() {
                   </View>
                 </View>
               </View>
-              <View style={[styles.privacyBadge, { backgroundColor: 'rgba(45, 212, 191, 0.15)' }]}>
-                <Ionicons name="checkmark-circle" size={13} color="#2DD4BF" />
-                <ThemedText style={styles.scanning}>Location confirmed</ThemedText>
+              <View style={styles.privacyBadge}>
+                <Ionicons
+                  name={isVerified ? 'checkmark-circle' : 'alert-circle'}
+                  size={13}
+                  color={isVerified ? '#2DD4BF' : '#FBBF24'}
+                />
+                <ThemedText style={styles.scanning}>
+                  {isVerified ? 'Location confirmed' : 'Text only'}
+                </ThemedText>
               </View>
             </View>
 
-            <ThemedText style={styles.status}>Location found</ThemedText>
+            <ThemedText style={styles.status}>
+              {isVerified ? 'Location found' : 'Address saved'}
+            </ThemedText>
 
             <ThemedText type="title" style={styles.title}>
-              We are looking here.
+              {isVerified ? 'We are looking here.' : 'We saved your text.'}
             </ThemedText>
 
             <ThemedText style={styles.subtitle}>
-              City Pulse will use this area to sort nearby services by distance. You can change it at any time.
+              {isVerified
+                ? 'City Pulse will use this area to sort nearby services by distance. You can change it at any time.'
+                : 'This address has no map location attached, so nearby services and directions are not available from it yet. Choose another area to match it to the map.'}
             </ThemedText>
 
             <View style={styles.detailRow}>
@@ -98,7 +114,7 @@ export default function CurrentLocationScreen() {
               <View style={styles.detailItem}>
                 <ThemedText style={styles.detailLabel}>Source</ThemedText>
                 <ThemedText style={styles.detailValue}>
-                  {isGps ? 'GPS' : 'Manual'}
+                  {isVerified ? (isGps ? 'GPS' : 'Map place') : 'Text only'}
                 </ThemedText>
               </View>
               <View style={styles.detailDivider} />

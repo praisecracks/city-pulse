@@ -195,7 +195,7 @@ export default function ForgotPasswordScreen() {
               <ActivityIndicator size="small" color={COLOR_PRIMARY} />
               <ThemedText style={styles.statusText}>{statusMessage}</ThemedText>
             </View>
-          )}}
+          )}
           <View style={styles.actionGroup}>
             <Pressable
               accessibilityRole="button"

@@ -151,9 +151,13 @@ export default function ProfileScreen() {
       return;
     }
 
-    // Already logged in as a customer: go straight to provider registration
-    // instead of re-entering auth.
-    router.push('/agent-registration-1' as never);
+    // Already logged in as a customer: go to account type selection so the
+    // customer role shows as already active. Agent intent is set after the
+    // user confirms they want to create a provider account.
+    router.push({
+      pathname: '/account-type',
+      params: { existingUser: 'true' },
+    } as never);
   };
 
   const handleAvatarPick = async (source: PickSource) => {
@@ -357,7 +361,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Agent Business Details Section - only when a listing exists */}
-          {isAgent && listing && (
+           {isAgent && listing && user?.verified && (
             <View style={styles.section}>
               <View style={styles.sectionTitleRow}>
                 <ThemedText style={styles.sectionTitle}>BUSINESS PROFILE</ThemedText>
@@ -368,7 +372,7 @@ export default function ProfileScreen() {
                   style={({ pressed }) => [styles.sectionTitleToggle, pressed && styles.pressed]}
                 >
                 <Ionicons
-                  name={isBusinessProfileExpanded ? 'arrow-up' : 'arrow-down'}
+                  name="eye-outline"
                   size={20}
                   color={theme.textSecondary}
                 />

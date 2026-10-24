@@ -21,7 +21,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getListing, STATUS_META } from '@/data/product';
 import { useTheme } from '@/hooks/use-theme';
-import { fetchDirections, decodePolyline } from '@/utils/google-places';
+import { useAppState } from '@/state/app-state';
+import {
+  decodePolyline,
+  fetchDirections,
+  toLocationError,
+} from '@/utils/google-places';
 
 const BRAND_TEAL = '#129E9E';
 const COLOR_DESTINATION = '#F43F5E';
@@ -54,6 +59,7 @@ export default function SmoothDirectionsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
   const listing = getListing(id || 'adebayo-pos');
+  const { token } = useAppState();
 
   const mapRef = useRef<MapView>(null);
   const [origin, setOrigin] = useState<{ latitude: number; longitude: number; label: string } | null>(null);
@@ -131,13 +137,8 @@ export default function SmoothDirectionsScreen() {
 
     if (!origin) {
       setRoute(null);
-      return;
-    }
-
-    if (!hasGoogleMapsKey()) {
-      setRoute(null);
       setRouteError(
-        'Turn-by-turn directions are unavailable right now. The provider is still shown on the map. Open directions in Maps or retry.',
+        'Turn-by-turn directions need your location. Allow location access or set your area, then retry.',
       );
       return;
     }
@@ -146,16 +147,21 @@ export default function SmoothDirectionsScreen() {
     setRouteError(null);
 
     try {
+      // Directions are proxied through the backend, so this no longer depends
+      // on the app's own Google key. The key that ships with the app is
+      // restricted to Android applications and cannot be used for web
+      // services, which is why the lookup used to fail on every device.
       const directions = await fetchDirections(
         { latitude: origin.latitude, longitude: origin.longitude },
         { latitude: listing.latitude, longitude: listing.longitude },
-        travelMode
+        travelMode,
+        { token },
       );
 
       if (!directions || directions.routes.length === 0) {
         setRoute(null);
         setRouteError(
-          'Turn-by-turn directions are unavailable right now. The provider is still shown on the map. Open directions in Maps or retry.',
+          'No road route was found between you and this provider. The provider is still shown on the map. Open directions in Maps or try another travel mode.',
         );
         return;
       }
@@ -180,16 +186,23 @@ export default function SmoothDirectionsScreen() {
         polyline,
       });
       setCurrentStepIndex(0);
-    } catch (e) {
-      console.warn('[Directions] Failed to load:', e);
+    } catch (error) {
+      const failure = toLocationError(error);
+      console.warn(
+        `[directions] route lookup failed reason=${failure.reason} status=${failure.status ?? 'n/a'}`,
+      );
       setRoute(null);
       setRouteError(
-        'Turn-by-turn directions are unavailable right now. The provider is still shown on the map. Open directions in Maps or retry.',
+        failure.reason === 'offline'
+          ? "You're offline. Reconnect and retry for turn-by-turn directions."
+          : failure.reason === 'timeout'
+            ? 'Directions took too long to load. The provider is still shown on the map. Retry.'
+            : 'Turn-by-turn directions are unavailable right now. The provider is still shown on the map. Open directions in Maps or retry.',
       );
     } finally {
       setIsLoadingRoute(false);
     }
-  }, [listing, origin, travelMode]);
+  }, [listing, origin, travelMode, token]);
 
   useEffect(() => {
     // Route state reflects the current device origin, provider, and travel mode.
@@ -392,20 +405,20 @@ export default function SmoothDirectionsScreen() {
 
               {route?.polyline && (
                 <Polyline
-                  key={`route-${travelMode}-${route.polyline.length}`}
+                  key="route"
                   coordinates={route.polyline}
                   strokeColor={BRAND_TEAL}
                   strokeWidth={5}
                   geodesic={true}
                 />
               )}
-
-              {isLoadingRoute && (
-                <View style={styles.loadingOverlay}>
-                  <ActivityIndicator size="large" color={BRAND_TEAL} />
-                </View>
-              )}
             </MapView>
+
+            {isLoadingRoute && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color={BRAND_TEAL} />
+              </View>
+            )}
 
             {/* Recenter Floating Button */}
             <View style={styles.mapOverlayControls}>
@@ -638,7 +651,7 @@ const getStyles = (theme: Theme) =>
     hudExitBtn: { padding: 6 },
     mapContainer: { height: MAP_HEIGHT, width: '100%', position: 'relative' },
     map: { flex: 1 },
-    mapOverlayControls: { position: 'absolute', right: 16, top: 16 },
+    mapOverlayControls: { position: 'absolute', right: 16, top: 16, zIndex: 11 },
     overlayBtn: {
       width: 44,
       height: 44,

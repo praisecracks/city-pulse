@@ -1,5 +1,6 @@
 import { takePendingReads } from './notification-cache';
 import { MOCK_API } from './api-config';
+import { apiRequest } from './api-client';
 
 /**
  * Mirrors the backend's NOTIFICATION_TYPES enum.

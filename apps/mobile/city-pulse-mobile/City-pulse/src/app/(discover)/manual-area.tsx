@@ -28,8 +28,10 @@ import {
 } from '@/state/app-state';
 import { createManualLocation, getAutomaticLocation } from '@/utils/location';
 import {
+  describeLocationError,
   fetchPlacePredictions,
   fetchPlaceDetails,
+  toLocationError,
   type PlaceDetails,
 } from '@/utils/google-places';
 
@@ -40,6 +42,17 @@ const COLOR_TEXT_MAIN = '#0F172A';
 const COLOR_TEXT_MUTED = '#64748B';
 const COLOR_BORDER = '#E2E8F0';
 
+/**
+ * The state of the address search.
+ *
+ * `no_results` and `failed` are different facts and the screen treats them
+ * differently. `no_results` means Google answered and had nothing, so the
+ * user may save the address as an unverified text entry. `failed` means the
+ * lookup never happened, so there is nothing to save and the user is told to
+ * try again.
+ */
+type SearchState = 'idle' | 'searching' | 'no_results' | 'failed';
+
 function sanitizeInput(input: string): string {
   return input
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
@@ -47,10 +60,12 @@ function sanitizeInput(input: string): string {
 }
 
 function hasValidCoordinates(
-  location: { latitude: number; longitude: number } | null | undefined,
+  location: { latitude: number | null; longitude: number | null } | null | undefined,
 ): location is { latitude: number; longitude: number } {
   return (
     !!location &&
+    typeof location.latitude === 'number' &&
+    typeof location.longitude === 'number' &&
     Number.isFinite(location.latitude) &&
     Number.isFinite(location.longitude) &&
     location.latitude >= -90 &&
@@ -79,6 +94,7 @@ export default function ManualAreaScreen() {
     setSelectedArea,
     setCustomerLocation,
     customerLocation,
+    token,
   } = useAppState();
 
   const [query, setQuery] = useState('');
@@ -89,6 +105,7 @@ export default function ManualAreaScreen() {
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
   const [manualAddress, setManualAddress] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [searchState, setSearchState] = useState<SearchState>('idle');
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -140,7 +157,7 @@ export default function ManualAreaScreen() {
 
         if (status !== 'granted') return;
 
-        const detected = await getAutomaticLocation();
+        const detected = await getAutomaticLocation({ token });
 
         if (!isMountedRef.current || interactionStartedRef.current) return;
         if (!hasValidCoordinates(detected.gps)) return;
@@ -157,6 +174,8 @@ export default function ManualAreaScreen() {
           serviceArea,
           label,
           mode: 'automatic',
+          // A GPS fix is a real point on the map.
+          verification: 'verified',
         };
 
         if (serviceArea) {
@@ -176,6 +195,7 @@ export default function ManualAreaScreen() {
     customerLocation?.mode,
     setCustomerLocation,
     setSelectedArea,
+    token,
   ]);
 
   const invalidatePendingSearches = useCallback(() => {
@@ -189,6 +209,84 @@ export default function ManualAreaScreen() {
     setIsLoadingPredictions(false);
     setIsLoadingPlaceDetails(false);
   }, []);
+
+  /**
+   * Runs the place search for a piece of text.
+   *
+   * Returns whether the search produced suggestions. The distinction that
+   * matters is between an empty result set and a failed request: the first
+   * means Google has no match, the second means the lookup never completed.
+   * Only the first is a real answer.
+   */
+  const runPlaceSearch = useCallback(
+    async (text: string): Promise<boolean> => {
+      const clean = sanitizeInput(text).trim();
+
+      if (clean.length < 2) {
+        return false;
+      }
+
+      setIsLoadingPredictions(true);
+      setSearchState('searching');
+
+      const requestId = ++predictionRequestIdRef.current;
+
+      try {
+        // No `types` filter: the New Places API's `address` type matches
+        // street-address predictions only and excludes `locality` (cities
+        // such as Abeokuta), `sublocality` (neighbourhoods such as Ibara
+        // and Onikolobo), and `establishment`/`point_of_interest`
+        // (landmarks). Letting the API return its default mix is what
+        // makes those queries work. `regionCode` scopes results to
+        // Nigeria.
+        const results = await fetchPlacePredictions(clean, {
+          country: 'ng',
+          token,
+        });
+
+        if (
+          !isMountedRef.current ||
+          requestId !== predictionRequestIdRef.current
+        ) {
+          return false;
+        }
+
+        setPredictions(results);
+        setSearchState(results.length > 0 ? 'idle' : 'no_results');
+        setErrorMessage(null);
+        return results.length > 0;
+      } catch (error) {
+        if (
+          !isMountedRef.current ||
+          requestId !== predictionRequestIdRef.current
+        ) {
+          return false;
+        }
+
+        // The typed address stays in the input. The user does not lose what
+        // they wrote because the lookup failed.
+        setPredictions([]);
+        setSearchState('failed');
+        setErrorMessage(describeLocationError(error));
+
+        // The reason is kept for the server log and the app's own diagnostics.
+        // The message shown to the user never contains Google's wording.
+        const failure = toLocationError(error);
+        console.warn(
+          `[manual-area] place search failed reason=${failure.reason} status=${failure.status ?? 'n/a'}`,
+        );
+        return false;
+      } finally {
+        if (
+          isMountedRef.current &&
+          requestId === predictionRequestIdRef.current
+        ) {
+          setIsLoadingPredictions(false);
+        }
+      }
+    },
+    [token],
+  );
 
   // Debounced autocomplete with protection against stale responses.
   const handleQueryChange = useCallback(
@@ -206,6 +304,7 @@ export default function ManualAreaScreen() {
       setPredictions([]);
       setIsLoadingPredictions(false);
       setIsLoadingPlaceDetails(false);
+      setSearchState('idle');
 
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
@@ -214,63 +313,18 @@ export default function ManualAreaScreen() {
 
       // Any existing response now belongs to an outdated query.
       detailsRequestIdRef.current += 1;
-      const requestId = ++predictionRequestIdRef.current;
+      predictionRequestIdRef.current += 1;
 
       if (clean.trim().length < 2) {
         return;
       }
 
-      debounceRef.current = setTimeout(async () => {
+      debounceRef.current = setTimeout(() => {
         debounceRef.current = null;
-
-        if (
-          !isMountedRef.current ||
-          requestId !== predictionRequestIdRef.current
-        ) {
-          return;
-        }
-
-        setIsLoadingPredictions(true);
-
-        try {
-          // No `types` filter: the New Places API's `address` type matches
-          // street-address predictions only and excludes `locality` (cities
-          // such as Abeokuta), `sublocality` (neighbourhoods such as Ibara
-          // and Onikolobo), and `establishment`/`point_of_interest`
-          // (landmarks). Letting the API return its default mix is what
-          // makes those queries work. `regionCode` scopes results to
-          // Nigeria.
-          const results = await fetchPlacePredictions(clean.trim(), {
-            country: 'ng',
-          });
-
-          if (
-            isMountedRef.current &&
-            requestId === predictionRequestIdRef.current
-          ) {
-            setPredictions(results);
-          }
-        } catch {
-          if (
-            isMountedRef.current &&
-            requestId === predictionRequestIdRef.current
-          ) {
-            setPredictions([]);
-            setErrorMessage(
-              'Could not search locations. Please check your connection and try again.',
-            );
-          }
-        } finally {
-          if (
-            isMountedRef.current &&
-            requestId === predictionRequestIdRef.current
-          ) {
-            setIsLoadingPredictions(false);
-          }
-        }
+        void runPlaceSearch(clean);
       }, 300);
     },
-    [],
+    [runPlaceSearch],
   );
 
   // Fetch the coordinates and address components for the selected Place.
@@ -293,10 +347,11 @@ export default function ManualAreaScreen() {
       setSelectedPlace(null);
       setHasAutoDetected(false);
       setErrorMessage(null);
+      setSearchState('idle');
       setIsLoadingPlaceDetails(true);
 
       try {
-        const details = await fetchPlaceDetails(prediction.placeId);
+        const details = await fetchPlaceDetails(prediction.placeId, { token });
 
         if (
           !isMountedRef.current ||
@@ -306,8 +361,11 @@ export default function ManualAreaScreen() {
         }
 
         if (!details || !hasValidCoordinates(details)) {
+          // Google has no coordinates for this place. The address is kept in
+          // the input so the user can pick something else, and no substitute
+          // coordinate is invented.
           setErrorMessage(
-            'Could not load valid address coordinates. Please select another result.',
+            'That place has no map location attached to it. Please choose another result.',
           );
           return;
         }
@@ -320,13 +378,16 @@ export default function ManualAreaScreen() {
 
         setSelectedPlace(selected);
         setManualAddress(null);
-      } catch {
+      } catch (error) {
         if (
           isMountedRef.current &&
           requestId === detailsRequestIdRef.current
         ) {
-          setErrorMessage(
-            'Could not load address details. Please try another location.',
+          setErrorMessage(describeLocationError(error));
+
+          const failure = toLocationError(error);
+          console.warn(
+            `[manual-area] place details failed reason=${failure.reason} status=${failure.status ?? 'n/a'}`,
           );
         }
       } finally {
@@ -338,7 +399,7 @@ export default function ManualAreaScreen() {
         }
       }
     },
-    [],
+    [token],
   );
 
   const handleContinue = useCallback(() => {
@@ -398,6 +459,8 @@ export default function ManualAreaScreen() {
         serviceArea,
         label: serviceAreaName,
         mode: 'manual',
+        // The place was resolved by Google, so it has real coordinates.
+        verification: 'verified',
       };
 
       setSelectedArea(serviceAreaName);
@@ -424,11 +487,33 @@ export default function ManualAreaScreen() {
       return;
     }
 
-    // Manual entry fallback: a typed address with no matching Google suggestion
-    // is still confirmable. It carries no coordinates, so Discover will use
-    // text-based matching rather than coordinate-based discovery.
+    // Manual entry fallback: an address Google could not resolve is still
+    // confirmable, but only as an unverified location. It carries no
+    // coordinates, so nearby search and directions cannot work from it. The
+    // user is told this before they leave the screen, rather than finding out
+    // later that nothing is nearby.
     if (effectiveManualAddress) {
-      router.replace(`/home-discover?area=${encodeURIComponent(effectiveManualAddress)}`);
+      Alert.alert(
+        'Save this address without a map location?',
+        `"${effectiveManualAddress}" could not be matched to a place on the map. It will be saved as text only, so nearby services and directions will not be available until it is resolved.`,
+        [
+          { text: 'Keep editing', style: 'cancel' },
+          {
+            text: 'Save as text only',
+            onPress: () => {
+              const locationToSave = createManualLocation({
+                label: effectiveManualAddress,
+                verification: 'unverified',
+              });
+              setCustomerLocation(locationToSave);
+              setSelectedArea(effectiveManualAddress);
+              router.replace(
+                `/home-discover?area=${encodeURIComponent(effectiveManualAddress)}`,
+              );
+            },
+          },
+        ],
+      );
       return;
     }
 
@@ -476,7 +561,7 @@ export default function ManualAreaScreen() {
         return;
       }
 
-      const detected = await getAutomaticLocation();
+      const detected = await getAutomaticLocation({ token });
 
       if (!isMountedRef.current) return;
 
@@ -499,6 +584,8 @@ export default function ManualAreaScreen() {
         serviceArea,
         label,
         mode: 'automatic',
+        // A GPS fix is a real point on the map.
+        verification: 'verified',
       };
 
       if (serviceArea) {
@@ -555,7 +642,7 @@ export default function ManualAreaScreen() {
         setIsLocating(false);
       }
     }
-  }, [invalidatePendingSearches, setCustomerLocation, setSelectedArea]);
+  }, [invalidatePendingSearches, setCustomerLocation, setSelectedArea, token]);
 
   /**
    * Tapping the detected-location suggestion beneath the input confirms the
@@ -579,7 +666,10 @@ export default function ManualAreaScreen() {
    * suggestion. The address is stored as an *unverified* location: it carries
    * no coordinates and must never trigger coordinate-based discovery or
    * directions. This is the fallback that keeps manual entry from being
-   * blocked when autocomplete returns nothing useful.
+   * blocked when Google genuinely has no match for the text.
+   *
+   * It is only offered when a search actually completed with no results. When
+   * the search failed there is no basis for saving the text as a location.
    */
   const saveManualAddress = useCallback(
     (address: string) => {
@@ -592,13 +682,41 @@ export default function ManualAreaScreen() {
       setHasAutoDetected(false);
       setManualAddress(trimmed);
       setErrorMessage(null);
+      setSearchState('idle');
 
-      const locationToSave = createManualLocation({ label: trimmed });
+      const locationToSave = createManualLocation({
+        label: trimmed,
+        verification: 'unverified',
+      });
       setCustomerLocation(locationToSave);
       setSelectedArea(trimmed);
     },
     [invalidatePendingSearches, setCustomerLocation, setSelectedArea],
   );
+
+  /**
+   * Retries the lookup for an address that was saved without coordinates.
+   *
+   * A text-only location is a dead end for anything that needs a point on the
+   * map, so the screen offers a way back: search for the same text again and
+   * pick the suggestion once the service is working.
+   */
+  const resolveSavedAddress = useCallback(() => {
+    const address = effectiveManualAddress;
+    if (!address) return;
+
+    interactionStartedRef.current = true;
+    setHasInteracted(true);
+    invalidatePendingSearches();
+
+    setQuery(address);
+    setSelectedPlace(null);
+    setHasAutoDetected(false);
+    setErrorMessage(null);
+    setPredictions([]);
+
+    void runPlaceSearch(address);
+  }, [effectiveManualAddress, invalidatePendingSearches, runPlaceSearch]);
 
   const clearSelection = useCallback(() => {
     interactionStartedRef.current = true;
@@ -611,6 +729,7 @@ export default function ManualAreaScreen() {
     setErrorMessage(null);
     setQuery('');
     setPredictions([]);
+    setSearchState('idle');
   }, [invalidatePendingSearches]);
 
   // Whether the user has a confirmable selection on screen. A manually typed
@@ -826,15 +945,17 @@ export default function ManualAreaScreen() {
               )}
 
               {query.trim().length >= 2 &&
+                searchState === 'no_results' &&
                 !isLoadingPredictions &&
                 !isLoadingPlaceDetails &&
                 predictions.length === 0 &&
                 !selectedPlace &&
-                !effectiveManualAddress &&
-                !errorMessage && (
+                !effectiveManualAddress && (
                   <View style={styles.noResults}>
                     <ThemedText style={styles.emptySubtitle}>
-                      Location not found. You can still save this address.
+                      No place on the map matches “{query.trim()}”. You can
+                      still save it as text, but it will not have a map
+                      location.
                     </ThemedText>
 
                     <Pressable
@@ -855,6 +976,43 @@ export default function ManualAreaScreen() {
                   </View>
                 )}
 
+              {/*
+                The search did not complete. This is deliberately not the same
+                state as "no match": there is no basis for saving the text as a
+                location, and the address the user typed is still in the box.
+              */}
+              {query.trim().length >= 2 &&
+                searchState === 'failed' &&
+                !isLoadingPredictions &&
+                !selectedPlace &&
+                !effectiveManualAddress && (
+                  <View style={styles.noResults}>
+                    <ThemedText style={styles.emptySubtitle}>
+                      The location search did not complete, so there is
+                      nothing to choose from yet. Your address is still in the
+                      box.
+                    </ThemedText>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Retry the location search"
+                      onPress={() => {
+                        void runPlaceSearch(query);
+                      }}
+                      style={styles.saveAddressBtn}
+                    >
+                      <Ionicons
+                        name="refresh"
+                        size={16}
+                        color={PRIMARY_COLOR}
+                      />
+                      <ThemedText style={styles.saveAddressBtnText}>
+                        Try again
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                )}
+
               {/* Saved manual address (no Google suggestion selected) */}
               {effectiveManualAddress && !selectedPlace && (
                 <View style={styles.manualAddressCard}>
@@ -867,15 +1025,32 @@ export default function ManualAreaScreen() {
                   </View>
                   <View style={styles.manualAddressText}>
                     <ThemedText style={styles.manualAddressLabel}>
-                      SAVED ADDRESS
+                      SAVED AS TEXT ONLY
                     </ThemedText>
                     <ThemedText style={styles.manualAddressValue} numberOfLines={2}>
                       {effectiveManualAddress}
                     </ThemedText>
                     <ThemedText style={styles.manualAddressNote}>
-                      Saved as typed. No coordinates are attached, so nearby
-                      discovery uses text matching.
+                      This address has no map location attached, so nearby
+                      services and directions will not work from it until it is
+                      resolved.
                     </ThemedText>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Try to resolve this address to a map location"
+                      onPress={resolveSavedAddress}
+                      style={styles.resolveAddressBtn}
+                    >
+                      <Ionicons
+                        name="search"
+                        size={14}
+                        color={PRIMARY_COLOR}
+                      />
+                      <ThemedText style={styles.resolveAddressBtnText}>
+                        Resolve this address
+                      </ThemedText>
+                    </Pressable>
                   </View>
                   <Pressable
                     accessibilityRole="button"
@@ -1337,6 +1512,20 @@ const styles = StyleSheet.create({
   manualAddressLabel: { fontSize: 10, fontWeight: '800', color: '#B45309', letterSpacing: 0.8 },
   manualAddressValue: { fontSize: 14, fontWeight: '700', color: COLOR_TEXT_MAIN },
   manualAddressNote: { fontSize: 11, color: '#92400E', lineHeight: 16 },
+  resolveAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: PRIMARY_COLOR,
+    backgroundColor: '#FFFFFF',
+  },
+  resolveAddressBtnText: { fontSize: 12, fontWeight: '700', color: PRIMARY_COLOR },
   footerContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,

@@ -127,8 +127,13 @@ export default function AgentNotificationsScreen() {
    * and error null, so an up-front setState would be a redundant synchronous
    * update that cascades an extra render for no benefit.
    */
-  const load = useCallback(async () => {
-    if (!userId) return;
+   const load = useCallback(async () => {
+    if (!userId) {
+      setError('You must be signed in to view notifications.');
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
 
     try {
       // Deliver reads recorded while offline *before* pulling the feed. Doing it

@@ -20,6 +20,7 @@ import {
 } from '@/utils/favorites-api';
 import { startOfflineQueueListener } from '@/utils/offline-queue';
 import { clearCachedNotifications } from '@/utils/notification-cache';
+import { clearCachedListing, getCachedListingSync } from '@/utils/listing-cache';
 import { resolveApiAssetUrl } from '@/utils/api-config';
 
 type User = {
@@ -135,12 +136,28 @@ export type ServiceArea = {
   confidence?: 'high' | 'medium' | 'low';
 };
 
+/**
+ * Whether a location was resolved to real coordinates.
+ *
+ * `verified` means Google resolved the address and the coordinates are real.
+ * `unverified` means the user typed an address that could not be resolved, so
+ * there are no coordinates and anything that needs a point on the map cannot
+ * work until the address is resolved.
+ */
+export type LocationVerification = 'verified' | 'unverified';
+
 export type CustomerLocation = {
   gps: GPSLocation | null;
   address: ResolvedAddress | null;
   serviceArea: ServiceArea | null;
   label: string;
   mode: LocationMode;
+  /**
+   * Optional because locations stored before this field existed are read back
+   * with coordinates when they have them. See `isLocationVerified` in
+   * `src/utils/location.ts` for the fallback rule.
+   */
+  verification?: LocationVerification;
 };
 
 type AppState = {
@@ -403,7 +420,12 @@ export function AppStateProvider({ children }: PropsWithChildren) {
                 parsedLocation.label &&
                 (parsedLocation.mode === 'automatic' || parsedLocation.mode === 'manual')
               ) {
-                setCustomerLocationState(parsedLocation);
+                setCustomerLocationState({
+                  ...parsedLocation,
+                  // Locations saved before the verification field existed are
+                  // verified by virtue of having real coordinates.
+                  verification: parsedLocation.verification ?? 'verified',
+                });
               }
             } else {
               // Old format - migrate
@@ -432,6 +454,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
                   },
                   label: parsedLocation.label,
                   mode: parsedLocation.mode,
+                  verification: 'verified',
                 });
               }
             }
@@ -642,27 +665,22 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     void syncFavorites();
   };
 
-  const signOut = async () => {
-    await Promise.all([
-      AsyncStorage.removeItem(STORAGE_KEYS.USER),
-      AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
-    ]);
+   const signOut = async () => {
+    try {
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.USER),
+        AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
+      ]);
+    } catch {
+      // best-effort: still clear in-memory state
+    }
     tokenRef.current = null;
     userRef.current = null;
     setUser(null);
     setToken(null);
-    // The cache is cleared on sign-out because it now holds another account's
-    // saved listings. Anything the person had picked while signed out lives on
-    // the server only if they were signed in, so it is re-merged on next
-    // sign-in.
     persistFavorites([]);
     void clearCachedListing();
-    // Clear the agent onboarding draft so the next account on this device does
-    // not inherit the previous user's in-progress registration.
     resetAgentDraftState();
-    // Alerts are account-scoped too, and a report notification is sensitive: it
-    // tells one provider that a specific person complained about them. Leaving
-    // it on disk would show the next person to use this device who that was.
     void clearCachedNotifications();
   };
 

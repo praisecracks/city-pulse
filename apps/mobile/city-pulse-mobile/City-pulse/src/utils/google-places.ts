@@ -1,4 +1,20 @@
-import { getGoogleMapsApiKey } from './api-config';
+import { ApiError, apiRequest } from './api-client';
+
+/**
+ * Location services for the app, proxied through the City Pulse backend.
+ *
+ * The app does not call Google's web services directly. It cannot: the Google
+ * key it ships with is restricted to Android applications, and Google rejects
+ * web-service calls that carry no Android application identity with
+ * `API_KEY_ANDROID_APP_BLOCKED`. The backend holds a separate server-side key
+ * and proxies the four calls the app actually needs.
+ *
+ * The other reason to proxy is honesty about failure. These helpers either
+ * return a real answer or throw a `LocationServiceError` that says which kind
+ * of failure it was. A search that matches nothing returns an empty array; a
+ * search that could not be performed throws. The two are never confused, which
+ * is what previously made a broken key look like an empty result set.
+ */
 
 export interface PlacePrediction {
   placeId: string;
@@ -12,20 +28,21 @@ export interface PlacePrediction {
 export interface PlaceDetails {
   placeId: string;
   formattedAddress: string;
-  latitude: number;
-  longitude: number;
+  /** Null when Google has no location for the place. Never a substitute coordinate. */
+  latitude: number | null;
+  longitude: number | null;
   addressComponents: Record<string, string>;
   name: string;
 }
 
 export interface DirectionsResponse {
-  routes: Array<{
-    legs: Array<{
+  routes: {
+    legs: {
       distance: { text: string; value: number };
       duration: { text: string; value: number };
       startAddress: string;
       endAddress: string;
-      steps: Array<{
+      steps: {
         distance: { text: string; value: number };
         duration: { text: string; value: number };
         htmlInstructions: string;
@@ -33,271 +50,256 @@ export interface DirectionsResponse {
         endLocation: { lat: number; lng: number };
         travelMode: string;
         maneuver?: string;
-      }>;
-    }>;
+      }[];
+    }[];
     overviewPolyline: { points: string };
-  }>;
+  }[];
   status: string;
 }
 
-const PLACES_AUTOCOMPLETE_BASE = 'https://places.googleapis.com/v1/places:autocomplete';
-const PLACES_DETAILS_BASE = 'https://places.googleapis.com/v1/places';
-const DIRECTIONS_BASE = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+/**
+ * Why a location request could not be completed.
+ *
+ * Each one calls for a different thing to happen next: `offline` wants the
+ * user to check their connection, `invalid_request` wants them to fix what
+ * they typed, `service_misconfigured` is ours to fix and should be reported
+ * rather than retried in a loop, and `quota` wants a short wait.
+ */
+export type LocationErrorReason =
+  | 'offline'
+  | 'timeout'
+  | 'service_unavailable'
+  | 'service_misconfigured'
+  | 'quota'
+  | 'invalid_request'
+  | 'not_found'
+  | 'unknown';
+
+/** A location request that failed, with a reason the UI can act on. */
+export class LocationServiceError extends Error {
+  readonly reason: LocationErrorReason;
+  readonly status: number | null;
+  /** True when trying the same request again later could plausibly work. */
+  readonly isRetryable: boolean;
+
+  constructor(
+    reason: LocationErrorReason,
+    message: string,
+    options: { status?: number | null; isRetryable?: boolean } = {},
+  ) {
+    super(message);
+    this.name = 'LocationServiceError';
+    this.reason = reason;
+    this.status = options.status ?? null;
+    this.isRetryable = options.isRetryable ?? false;
+  }
+}
+
+/** The server's machine codes mapped onto the reasons the app understands. */
+const CODE_TO_REASON: Record<string, LocationErrorReason> = {
+  LOCATION_SERVICE_MISCONFIGURED: 'service_misconfigured',
+  LOCATION_SERVICE_UNAVAILABLE: 'service_unavailable',
+  LOCATION_SERVICE_TIMEOUT: 'timeout',
+  LOCATION_QUOTA_EXCEEDED: 'quota',
+  RATE_LIMITED: 'quota',
+  INVALID_REQUEST: 'invalid_request',
+  PLACE_NOT_FOUND: 'not_found',
+};
+
+const RETRYABLE_REASONS: LocationErrorReason[] = [
+  'offline',
+  'timeout',
+  'service_unavailable',
+  'quota',
+  'unknown',
+];
+
+/**
+ * Normalises anything that was thrown into a `LocationServiceError`.
+ *
+ * The server's own message is kept, because it is written for a person and
+ * carries no Google internals. The reason is derived from the machine code.
+ */
+export function toLocationError(error: unknown): LocationServiceError {
+  if (error instanceof LocationServiceError) return error;
+
+  if (error instanceof ApiError) {
+    if (error.isTimeout) {
+      return new LocationServiceError('timeout', error.message, {
+        status: error.status,
+        isRetryable: true,
+      });
+    }
+
+    if (error.isOffline) {
+      return new LocationServiceError('offline', error.message, {
+        status: error.status,
+        isRetryable: true,
+      });
+    }
+
+    const mapped = error.code ? CODE_TO_REASON[error.code] : undefined;
+    if (mapped) {
+      return new LocationServiceError(mapped, error.message, {
+        status: error.status,
+        isRetryable: RETRYABLE_REASONS.includes(mapped),
+      });
+    }
+
+    // A 5xx without a code is the server having a bad day.
+    if (error.status !== null && error.status >= 500) {
+      return new LocationServiceError('service_unavailable', error.message, {
+        status: error.status,
+        isRetryable: true,
+      });
+    }
+
+    return new LocationServiceError('unknown', error.message, {
+      status: error.status,
+      isRetryable: true,
+    });
+  }
+
+  return new LocationServiceError(
+    'unknown',
+    'Something went wrong while looking up that location.',
+    { isRetryable: true },
+  );
+}
+
+/**
+ * A short, friendly sentence for a failed location request.
+ *
+ * Nothing here names a key, a quota or a project. The technical detail stays
+ * in the logs.
+ */
+export function describeLocationError(error: unknown): string {
+  const failure = toLocationError(error);
+
+  switch (failure.reason) {
+    case 'offline':
+      return "You're offline. Check your connection and try again.";
+    case 'timeout':
+      return 'That took too long to look up. Please try again.';
+    case 'service_misconfigured':
+      return 'Location search is temporarily unavailable. Please try again shortly.';
+    case 'quota':
+      return 'Location search is busy right now. Please try again in a moment.';
+    case 'invalid_request':
+      return failure.message || 'That search could not be understood. Please try again.';
+    case 'not_found':
+      return failure.message || 'That place could not be found.';
+    case 'service_unavailable':
+      return 'Location search is temporarily unavailable. Please try again.';
+    default:
+      return failure.message || 'Something went wrong while looking up that location.';
+  }
+}
+
+/** Options every location call accepts. */
+export type LocationRequestOptions = {
+  /**
+   * The signed-in user's token, when there is one.
+   *
+   * The location endpoints work without a token, because the onboarding flow
+   * asks for a location before the user has an account. Passing a token when
+   * one exists gives the caller its own rate-limit bucket.
+   */
+  token?: string | null;
+};
 
 /**
  * Fetches address predictions for autocomplete.
  *
- * Uses the Places API (New) rather than the legacy Autocomplete endpoint. The
- * legacy API is not enabled for this project and returns REQUEST_DENIED, so
- * the New endpoint is the only one that works here. It requires a POST body
- * and an `X-Goog-FieldMask` header instead of query params.
+ * Resolves with the suggestions Google offered. An empty array means Google
+ * found no match for the text, which is a successful search. A failed search
+ * throws a `LocationServiceError`.
  */
 export async function fetchPlacePredictions(
   input: string,
-  options?: { country?: string; types?: string }
+  options: LocationRequestOptions & { country?: string } = {},
 ): Promise<PlacePrediction[]> {
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) return [];
-
-  const body: Record<string, unknown> = { input, languageCode: 'en' };
-
-  if (options?.types) {
-    // New API takes an array of types, e.g. ["locality","establishment"].
-    body.types = options.types.split(',').map((t) => t.trim()).filter(Boolean);
-  }
-
-  if (options?.country) {
-    // The New Places API scopes results by ISO 3166-1 alpha-2 country code via
-    // `regionCode`, not the legacy `country` query parameter. Without this the
-    // caller's Nigeria restriction was silently discarded.
-    body.regionCode = options.country;
-  }
+  const trimmed = input.trim();
 
   try {
-    const response = await fetch(PLACES_AUTOCOMPLETE_BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        // Only the fields the client reads; keeps the response small.
-        'X-Goog-FieldMask':
-          'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormatting,suggestions.placePrediction.description',
-      },
-      body: JSON.stringify(body),
+    const params = new URLSearchParams({ input: trimmed });
+    if (options.country) params.set('regionCode', options.country);
+
+    const response = await apiRequest<{
+      success: true;
+      data: { predictions: PlacePrediction[] };
+    }>(`/places/autocomplete?${params.toString()}`, {
+      token: options.token ?? null,
     });
-    const data = await response.json();
 
-    if (!response.ok || data.error) {
-      console.warn('[Places] Autocomplete error:', data.error?.message || response.status);
-      return [];
-    }
-
-    return ((data.suggestions as any[]) || []).map((s: any) => {
-      const prediction = s.placePrediction || {};
-      return {
-        placeId: prediction.placeId || '',
-        description: prediction.description || prediction.text?.text || '',
-        structuredFormatting: {
-          mainText: prediction.structuredFormatting?.mainText?.text || prediction.description || '',
-          secondaryText: prediction.structuredFormatting?.secondaryText?.text || '',
-        },
-      };
-    }).filter((p) => p.placeId);
-  } catch (e) {
-    console.warn('[Places] Autocomplete fetch failed:', e);
-    return [];
+    return response?.data?.predictions ?? [];
+  } catch (error) {
+    throw toLocationError(error);
   }
 }
 
 /**
- * Fetches detailed place information including coordinates.
+ * Resolves a place to its real coordinates and address.
  *
- * Uses the Places API (New) GET endpoint with a field mask.
+ * `latitude` and `longitude` come back null when Google has no location for
+ * the place. They are never filled in with an approximation, because a wrong
+ * coordinate would send the user to the wrong place while looking correct.
  */
-export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) return null;
-
+export async function fetchPlaceDetails(
+  placeId: string,
+  options: LocationRequestOptions = {},
+): Promise<PlaceDetails> {
   try {
-    const response = await fetch(`${PLACES_DETAILS_BASE}/${placeId}`, {
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask':
-          'id,formattedAddress,location,addressComponents,displayName',
-      },
-    });
-    const data = await response.json();
+    const params = new URLSearchParams({ placeId: placeId.trim() });
 
-    if (!response.ok || data.error) {
-      console.warn('[Places] Details error:', data.error?.message || response.status);
-      return null;
-    }
+    const response = await apiRequest<{ success: true; data: PlaceDetails }>(
+      `/places/detail?${params.toString()}`,
+      { token: options.token ?? null },
+    );
 
-    const result = data;
-    const components: Record<string, string> = {};
-    for (const comp of result.addressComponents || []) {
-      for (const type of comp.types || []) {
-        if (!components[type] || comp.longName.length > components[type].length) {
-          components[type] = comp.longName;
-        }
-      }
-    }
-
-    return {
-      placeId: result.id || placeId,
-      formattedAddress: result.formattedAddress || '',
-      latitude: result.location?.latitude ?? 0,
-      longitude: result.location?.longitude ?? 0,
-      addressComponents: components,
-      name: result.displayName?.text || result.formattedAddress || '',
-    };
-  } catch (e) {
-    console.warn('[Places] Details fetch failed:', e);
-    return null;
+    return response.data;
+  } catch (error) {
+    throw toLocationError(error);
   }
 }
 
 /**
- * Fetches real road directions from Google Routes API (new).
+ * Fetches road directions between two points.
+ *
+ * Resolves with the route, or with an empty `routes` array when no road route
+ * exists between the two points. A failed lookup throws.
  */
 export async function fetchDirections(
   origin: { latitude: number; longitude: number },
   destination: { latitude: number; longitude: number },
-  travelMode: 'walking' | 'driving' | 'bicycling' | 'transit' = 'walking'
-): Promise<DirectionsResponse | null> {
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) return null;
-
-  // Map travel mode to Routes API format
-  const modeMap: Record<string, string> = {
-    walking: 'WALK',
-    driving: 'DRIVE',
-    bicycling: 'BICYCLE',
-    transit: 'TRANSIT',
-  };
-
-  const body = {
-    origin: {
-      location: {
-        latLng: {
-          latitude: origin.latitude,
-          longitude: origin.longitude,
-        },
-      },
-    },
-    destination: {
-      location: {
-        latLng: {
-          latitude: destination.latitude,
-          longitude: destination.longitude,
-        },
-      },
-    },
-    travelMode: modeMap[travelMode],
-    routingPreference: 'TRAFFIC_AWARE',
-    computeAlternativeRoutes: false,
-    routeModifiers: {
-      avoidTolls: false,
-      avoidHighways: false,
-      avoidFerries: false,
-    },
-    languageCode: 'en',
-    regionCode: 'ng',
-    units: 'METRIC',
-  };
-
+  travelMode: 'walking' | 'driving' | 'bicycling' | 'transit' = 'walking',
+  options: LocationRequestOptions = {},
+): Promise<DirectionsResponse> {
   try {
-    const androidCert = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_CERT_SHA1;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.duration,routes.legs.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,routes.legs.steps.startLocation,routes.legs.steps.endLocation',
-    };
-
-    // Identify this Android app to Google so an API key restricted to
-    // "Android apps" accepts the request instead of returning
-    // "Requests from this Android client application <empty> are blocked."
-    if (androidCert) {
-      headers['X-Android-Package'] = 'com.citypulse.app';
-      headers['X-Android-Cert'] = androidCert;
-    }
-
-    const response = await fetch(DIRECTIONS_BASE, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
+    const params = new URLSearchParams({
+      originLat: String(origin.latitude),
+      originLng: String(origin.longitude),
+      destinationLat: String(destination.latitude),
+      destinationLng: String(destination.longitude),
+      mode: travelMode,
     });
 
-    const data = await response.json();
+    const response = await apiRequest<{ success: true; data: DirectionsResponse }>(
+      `/places/directions?${params.toString()}`,
+      { token: options.token ?? null },
+    );
 
-    if (data.error) {
-      console.warn('[Directions] Error:', data.error.message);
-      return null;
-    }
-
-    // Transform Routes API response to match legacy DirectionsResponse format
-    if (data.routes && data.routes.length > 0) {
-      const route = data.routes[0];
-      const leg = route.legs?.[0];
-      
-      if (!leg) return null;
-
-      // Build steps array in legacy format
-      const steps = (leg.steps || []).map((step: any) => ({
-        htmlInstructions: step.navigationInstruction?.instructions || '',
-        distance: { text: `${step.distanceMeters} m`, value: step.distanceMeters },
-        duration: { text: step.staticDuration, value: parseDuration(step.staticDuration) },
-        startLocation: step.startLocation?.latLng ? {
-          lat: step.startLocation.latLng.latitude,
-          lng: step.startLocation.latLng.longitude,
-        } : { lat: origin.latitude, lng: origin.longitude },
-        endLocation: step.endLocation?.latLng ? {
-          lat: step.endLocation.latLng.latitude,
-          lng: step.endLocation.latLng.longitude,
-        } : { lat: destination.latitude, lng: destination.longitude },
-        travelMode: travelMode,
-      }));
-
-      return {
-        routes: [{
-          legs: [{
-            distance: { text: `${leg.distanceMeters} m`, value: leg.distanceMeters },
-            duration: { text: leg.duration, value: parseDuration(leg.duration) },
-            startAddress: '',
-            endAddress: '',
-            steps,
-          }],
-          overviewPolyline: { points: route.polyline?.encodedPolyline || '' },
-        }],
-        status: 'OK',
-      };
-    }
-
-    return null;
-  } catch (e) {
-    console.warn('[Directions] Fetch failed:', e);
-    return null;
+    return response.data;
+  } catch (error) {
+    throw toLocationError(error);
   }
-}
-
-function parseDuration(durationStr: string): number {
-  // Parse ISO 8601 duration (e.g., "120s", "2m30s") to seconds
-  const match = durationStr.match(/(\d+)h?|(\d+)m?|(\d+)s/);
-  if (!match) return 0;
-  
-  let seconds = 0;
-  if (match[1]) seconds += parseInt(match[1]) * 3600;
-  if (match[2]) seconds += parseInt(match[2]) * 60;
-  if (match[3]) seconds += parseInt(match[3]);
-  return seconds;
 }
 
 /**
  * Decodes a Google encoded polyline string to an array of {lat, lng} coordinates.
  */
-export function decodePolyline(encoded: string): Array<{ latitude: number; longitude: number }> {
-  const points: Array<{ latitude: number; longitude: number }> = [];
+export function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
+  const points: { latitude: number; longitude: number }[] = [];
   let index = 0;
   let lat = 0;
   let lng = 0;

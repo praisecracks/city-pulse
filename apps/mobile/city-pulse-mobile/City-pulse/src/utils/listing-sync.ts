@@ -12,6 +12,7 @@ import {
 import { API_BASE_URL, MOCK_API, resolveApiAssetUrl } from './api-config';
 import { ApiError } from './api-client';
 import { savePublicFeedCache, loadPublicFeedCache } from './listing-cache';
+import { formatDistance } from './location';
 
 const FETCH_TIMEOUT_MS = 10_000;
 

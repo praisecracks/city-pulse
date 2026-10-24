@@ -1,44 +1,63 @@
 import * as Location from 'expo-location';
 
-import type { CustomerLocation, GPSLocation, ResolvedAddress, ServiceArea } from '@/state/app-state';
-import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_API_KEY_ANDROID } from './api-config';
-import { Platform } from 'react-native';
+import type {
+  CustomerLocation,
+  GPSLocation,
+  LocationVerification,
+  ResolvedAddress,
+  ServiceArea,
+} from '@/state/app-state';
+import { apiRequest } from './api-client';
+import { type LocationServiceError, toLocationError } from './google-places';
 
 const EARTH_RADIUS_METERS = 6371000;
 const LOCATION_TIMEOUT_MS = 15000;
 
-interface GoogleGeocodeResult {
-  address_components: {
-    long_name: string;
-    short_name: string;
-    types: string[];
-  }[];
-  formatted_address: string;
-  geometry: {
-    location: { lat: number; lng: number };
-    location_type: string;
-  };
-  place_id: string;
-  types: string[];
-}
+/** A single reverse-geocoding candidate, normalised by the backend. */
+type ReverseGeocodeResult = {
+  formattedAddress: string;
+  addressComponents: Record<string, string>;
+  latitude: number | null;
+  longitude: number | null;
+};
 
-interface GoogleGeocodeResponse {
-  results: GoogleGeocodeResult[];
-  status: string;
-}
+/** The address fields the app needs, once a coordinate has been resolved. */
+export type ResolvedAddressDetails = {
+  area: string;
+  streetName: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  country: string;
+  formattedAddress: string;
+  components: Record<string, string>;
+  locality?: string;
+};
 
-function parseGoogleAddressComponents(components: GoogleGeocodeResult['address_components']) {
-  const result: Record<string, string> = {};
-  for (const component of components) {
-    for (const type of component.types) {
-      // Keep the most specific (longest) value for each type
-      if (!result[type] || component.long_name.length > result[type].length) {
-        result[type] = component.long_name;
-      }
-    }
-  }
-  return result;
-}
+/**
+ * The outcome of resolving a coordinate into an address.
+ *
+ * `unresolved` and `failed` are kept apart on purpose. The first means Google
+ * looked and had nothing; the second means the lookup never happened. The
+ * first is a fact about the world, the second is a fact about the service, and
+ * only one of them is worth retrying.
+ */
+export type AddressResolution =
+  | { status: 'resolved'; address: ResolvedAddressDetails }
+  | { status: 'unresolved' }
+  | { status: 'failed'; error: LocationServiceError };
+
+/** The address details used when a lookup produced nothing usable. */
+const EMPTY_ADDRESS: ResolvedAddressDetails = {
+  area: '',
+  streetName: '',
+  streetAddress: '',
+  city: '',
+  state: '',
+  country: '',
+  formattedAddress: '',
+  components: {},
+};
 
 // Ordered from most specific to least specific community-level component.
 // Returns the first match, which is the most granular community/neighborhood name.
@@ -72,7 +91,102 @@ export interface GPSResult extends CustomerLocation {
   source: 'gps';
 }
 
-export async function getAutomaticLocation(): Promise<CustomerLocation> {
+/**
+ * True when the location was resolved to real coordinates.
+ *
+ * Locations stored before the verification field existed have no marker, so
+ * they fall back to "has coordinates means verified". A location can only be
+ * unverified when it explicitly says so, which is what keeps a typed address
+ * from being presented as a real place.
+ */
+export function isLocationVerified(
+  location: CustomerLocation | null | undefined,
+): location is CustomerLocation & { verification: 'verified' } {
+  if (!location) return false;
+  if (location.verification) return location.verification === 'verified';
+  return location.gps !== null;
+}
+
+/**
+ * Reverse geocodes a coordinate into an address, through the backend proxy.
+ *
+ * The app cannot call the Geocoding API itself: the Google key it ships with
+ * is restricted to Android applications, and Google rejects web-service calls
+ * from it. The backend holds a server-side key and proxies the call.
+ */
+export async function resolveAddress(
+  latitude: number,
+  longitude: number,
+  options: { token?: string | null } = {},
+): Promise<AddressResolution> {
+  try {
+    const params = new URLSearchParams({
+      lat: String(latitude),
+      lng: String(longitude),
+    });
+
+    const response = await apiRequest<{
+      success: true;
+      data: { results: ReverseGeocodeResult[] };
+    }>(`/places/reverse?${params.toString()}`, {
+      token: options.token ?? null,
+    });
+
+    const results = response?.data?.results ?? [];
+    if (results.length === 0) {
+      return { status: 'unresolved' };
+    }
+
+    return { status: 'resolved', address: pickMostSpecificAddress(results) };
+  } catch (error) {
+    return { status: 'failed', error: toLocationError(error) };
+  }
+}
+
+/**
+ * Picks the candidate with the most granular community name.
+ *
+ * Google returns several candidates for a coordinate, and the most specific
+ * one ("Jesutedo") is the neighbourhood the user recognises, while the least
+ * specific is just the city.
+ */
+function pickMostSpecificAddress(results: ReverseGeocodeResult[]): ResolvedAddressDetails {
+  let bestResult = results[0];
+  let bestCommunity = '';
+
+  for (const result of results) {
+    const foundCommunity = extractMostSpecificCommunity(result.addressComponents ?? {});
+    if (foundCommunity && foundCommunity.length > bestCommunity.length) {
+      bestResult = result;
+      bestCommunity = foundCommunity;
+    }
+  }
+
+  const components = bestResult.addressComponents ?? {};
+  const community = extractMostSpecificCommunity(components);
+  const streetName = getStreetName(components);
+  const streetNumber = components.street_number || '';
+  const route = components.route || '';
+
+  // Build street address (number + route)
+  const streetAddress = [streetNumber, route].filter(Boolean).join(' ') || streetName || route || '';
+
+  return {
+    area: community,
+    streetName,
+    streetAddress,
+    city: components.city || components.locality || '',
+    state: components.administrative_area_level_1 || '',
+    country: components.country || '',
+    formattedAddress: bestResult.formattedAddress || '',
+    components,
+    locality: components.locality,
+  };
+}
+
+export async function getAutomaticLocation(
+  options: { token?: string | null } = {},
+): Promise<CustomerLocation> {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (!permission.granted) {
     throw new Error('Location permission was not granted');
@@ -103,11 +217,14 @@ export async function getAutomaticLocation(): Promise<CustomerLocation> {
   const accuracy = position.coords.accuracy ?? undefined;
   const timestamp = Date.now();
 
-  // Get detailed address from Google Geocoding (or fallback)
-  const detailed = await getDetailedAddress(latitude, longitude);
+  // Resolve the address for the coordinates. A failure here does not
+  // invalidate the fix: the coordinates are real, so the location stays
+  // verified and only the human-readable address is missing.
+  const resolution = await resolveAddress(latitude, longitude, options);
+  const detailed = resolution.status === 'resolved' ? resolution.address : EMPTY_ADDRESS;
 
   // Determine service area from GPS (prefer Google result, then city)
-  let serviceAreaName = detailed.area || detailed.locality || detailed.city || 'Unknown area';
+  const serviceAreaName = detailed.area || detailed.locality || detailed.city || 'Unknown area';
   let confidence: 'high' | 'medium' | 'low' = 'medium';
 
   if (detailed.area) {
@@ -145,104 +262,24 @@ export async function getAutomaticLocation(): Promise<CustomerLocation> {
     serviceArea,
     label,
     mode: 'automatic',
+    // The GPS fix is the location. It is verified whatever the address lookup
+    // returned.
+    verification: 'verified',
   };
 }
 
-// New function to get detailed address components for form fields
-export async function getDetailedAddress(latitude: number, longitude: number): Promise<{
-  area: string;
-  streetName: string;
-  streetAddress: string;
-  city: string;
-  state: string;
-  country: string;
-  formattedAddress: string;
-  components: Record<string, string>;
-  locality?: string;
-}> {
-  const apiKey = Platform.OS === 'android' ? GOOGLE_MAPS_API_KEY_ANDROID : GOOGLE_MAPS_API_KEY;
-  if (!apiKey) {
-    return {
-      area: '',
-      streetName: '',
-      streetAddress: '',
-      city: '',
-      state: '',
-      country: '',
-      formattedAddress: '',
-      components: {},
-    };
-  }
-
-  try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&language=en&region=ng`;
-    const response = await fetch(url);
-    const data: GoogleGeocodeResponse = await response.json();
-
-    if (data.status !== 'OK' || data.results.length === 0) {
-      return {
-        area: '',
-        streetName: '',
-        streetAddress: '',
-        city: '',
-        state: '',
-        country: '',
-        formattedAddress: '',
-        components: {},
-      };
-    }
-
-    // Search ALL results for most granular community
-    let bestResult = data.results[0];
-    let bestCommunity = '';
-
-    for (const result of data.results) {
-      const components = parseGoogleAddressComponents(result.address_components);
-      const foundCommunity = extractMostSpecificCommunity(components);
-      if (foundCommunity && foundCommunity.length > bestCommunity.length) {
-        bestResult = result;
-        bestCommunity = foundCommunity;
-      }
-    }
-
-    const components = parseGoogleAddressComponents(bestResult.address_components);
-
-    const community = extractMostSpecificCommunity(components);
-    const streetName = getStreetName(components);
-    const streetNumber = components.street_number || '';
-    const route = components.route || '';
-
-    // Build street address (number + route)
-    const streetAddress = [streetNumber, route].filter(Boolean).join(' ') || streetName || route || '';
-
-    return {
-      area: community,
-      streetName,
-      streetAddress,
-      city: components.city || components.locality || '',
-      state: components.administrative_area_level_1 || '',
-      country: components.country || '',
-      formattedAddress: bestResult.formatted_address,
-      components,
-      locality: components.locality,
-    };
-  } catch (e) {
-    console.warn('[Location] Detailed address fetch failed:', e);
-    return {
-      area: '',
-      streetName: '',
-      streetAddress: '',
-      city: '',
-      state: '',
-      country: '',
-      formattedAddress: '',
-      components: {},
-    };
-  }
-}
-
+/**
+ * Builds a location from an address the user typed that could not be
+ * resolved.
+ *
+ * The result carries no coordinates, and says so. That is the whole point:
+ * an unverified location cannot support nearby search or directions, and
+ * presenting it as though it could would send the user looking for services
+ * that the app has no way to locate.
+ */
 export function createManualLocation(input: {
   label: string;
+  verification?: LocationVerification;
 }): CustomerLocation {
   if (!input.label.trim()) {
     throw new Error('Manual location is incomplete');
@@ -256,10 +293,12 @@ export function createManualLocation(input: {
     serviceArea: {
       name,
       source: 'manual',
-      confidence: 'medium',
+      // No coordinates means no confidence in the area, whatever the text says.
+      confidence: 'low',
     },
     label: name,
     mode: 'manual',
+    verification: input.verification ?? 'unverified',
   };
 }
 

@@ -495,11 +495,11 @@ export default function AgentDashboardScreen() {
                   View your published listing
                 </ThemedText>
                 <ThemedText style={[styles.quickActionText, { color: theme.textSecondary }]}>
-                  Exactly what customers see, with your photos and current status
-                </ThemedText>
-              </View>
+                   Exactly what customers see, with your photos and current status
+                 </ThemedText>
+               </View>
 
-              <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+               <Ionicons name="eye-outline" size={16} color={theme.textSecondary} />
             </Pressable>}
 
             <Pressable

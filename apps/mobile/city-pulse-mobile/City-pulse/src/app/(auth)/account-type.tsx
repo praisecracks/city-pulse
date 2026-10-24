@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAppState } from '@/state/app-state';
 
 const COLOR_PRIMARY = '#129E9E';
 const COLOR_BG = '#FAF6EE';
@@ -15,9 +16,21 @@ const COLOR_BORDER = '#E2E8F0';
 const COLOR_TEAL_SOFT = '#E8F6F6';
 
 export default function AccountTypeScreen() {
-  const { id, intent } = useLocalSearchParams<{ id?: string; intent?: string }>();
+  const { id, existingUser } = useLocalSearchParams<{ id?: string; intent?: string; existingUser?: string }>();
+  const { updateUser } = useAppState();
+  const isExistingUser = existingUser === 'true';
 
   const handleSelect = (accountType: 'agent' | 'customer') => {
+    if (isExistingUser && accountType === 'customer') return;
+
+    if (isExistingUser && accountType === 'agent') {
+      // Already logged in as a customer: mark agent intent and go straight to
+      // provider onboarding instead of re-entering auth.
+      updateUser({ agentIntent: true });
+      router.push('/agent-registration-1' as never);
+      return;
+    }
+
     router.push({
       pathname: '/create-account',
       params: {
@@ -79,18 +92,40 @@ export default function AccountTypeScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => handleSelect('customer')}
-              style={({ pressed }) => [styles.optionCard, pressed && styles.pressed]}
+              disabled={isExistingUser}
+              style={({ pressed }) => [
+                styles.optionCard,
+                isExistingUser && styles.optionCardMarked,
+                pressed && !isExistingUser && styles.pressed,
+              ]}
             >
-              <View style={[styles.iconCircle, { backgroundColor: COLOR_TEAL_SOFT }]}>
-                <Ionicons name="person-outline" size={26} color={COLOR_PRIMARY} />
+              <View
+                style={[
+                  styles.iconCircle,
+                  { backgroundColor: isExistingUser ? COLOR_TEAL_SOFT : COLOR_TEAL_SOFT },
+                ]}
+              >
+                {isExistingUser ? (
+                  <Ionicons name="checkmark-circle" size={26} color={COLOR_PRIMARY} />
+                ) : (
+                  <Ionicons name="person-outline" size={26} color={COLOR_PRIMARY} />
+                )}
               </View>
               <View style={styles.optionBody}>
                 <ThemedText style={styles.optionTitle}>Customer</ThemedText>
                 <ThemedText style={styles.optionDesc}>
-                  Discover and find nearby services, report issues, and save favorites.
+                  {isExistingUser
+                    ? 'Already active on this account.'
+                    : 'Discover and find nearby services, report issues, and save favorites.'}
                 </ThemedText>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLOR_TEXT_MUTED} />
+              {isExistingUser ? (
+                <View style={styles.markedBadge}>
+                  <ThemedText style={styles.markedBadgeText}>Active</ThemedText>
+                </View>
+              ) : (
+                <Ionicons name="chevron-forward" size={18} color={COLOR_TEXT_MUTED} />
+              )}
             </Pressable>
           </View>
         </ScrollView>
@@ -178,6 +213,12 @@ const styles = StyleSheet.create({
     borderColor: COLOR_BORDER,
     padding: 16,
   },
+  optionCardMarked: {
+    borderColor: COLOR_PRIMARY,
+    borderWidth: 2,
+    backgroundColor: COLOR_TEAL_SOFT,
+    opacity: 1,
+  },
   iconCircle: {
     width: 48,
     height: 48,
@@ -198,6 +239,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     color: COLOR_TEXT_MUTED,
+  },
+  markedBadge: {
+    backgroundColor: COLOR_PRIMARY,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  markedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
 
   /* Footer */

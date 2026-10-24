@@ -1,9 +1,10 @@
-import { isAgentOnboardingRoute } from '@/utils/agent-onboarding';
+import { getAgentResumePath, isAgentOnboardingRoute } from '@/utils/agent-onboarding';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { BottomTabBar } from '@/components/bottom-tab-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AppStateProvider, useAppState } from '@/state/app-state';
@@ -121,8 +122,13 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <AppStateProvider>
-      <AppContent />
-    </AppStateProvider>
+    // The boundary sits above the app state on purpose. If anything below it
+    // throws while rendering, the user gets a screen with a way forward
+    // instead of a blank window with the native splash still on top of it.
+    <AppErrorBoundary>
+      <AppStateProvider>
+        <AppContent />
+      </AppStateProvider>
+    </AppErrorBoundary>
   );
 }
